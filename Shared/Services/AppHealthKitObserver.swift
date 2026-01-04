@@ -5,51 +5,48 @@ import WidgetKit
 // ============================================================================
 
 /// Centralized observer for HealthKit changes that triggers widget updates
-/// and provides reactive notifications to views
-public final class AppHealthKitObserver: @unchecked Sendable {
+/// and provides reactive notifications to views.
+///
+/// Uses Swift actor isolation for thread-safe state management without
+/// manual dispatch queues.
+public actor AppHealthKitObserver {
+    /// Shared singleton instance for app-wide use.
     public static let shared = AppHealthKitObserver()
 
     private let healthKitService: HealthKitService
     private let notifications: HealthDataNotifications
-    private let logger = AppLogger.new(for: AppHealthKitObserver.self)
+    private nonisolated let logger = AppLogger.new(for: AppHealthKitObserver.self)
 
     private var isObserving = false
-    private let observerQueue = DispatchQueue(label: "\(AppID).AppHealthKitObserver", qos: .utility)
 
     private init() {
         self.healthKitService = HealthKitService.shared
         self.notifications = HealthDataNotifications.shared
     }
 
-    /// Start observing all HealthKit data types for app-wide reactive updates
+    /// Start observing all HealthKit data types for app-wide reactive updates.
     public func startObserving() {
         guard !isObserving else {
             logger.warning("Already observing, skipping duplicate setup")
             return
         }
-
-        observerQueue.async { [weak self] in
-            self?.setupObservers()
-        }
+        setupObservers()
     }
 
-    /// Stop all observations
+    /// Stop all observations.
     public func stopObserving() {
         guard isObserving else { return }
 
-        observerQueue.async { [weak self] in
-            guard let self = self else { return }
-
-            self.healthKitService.stopObserving(for: "AppHealthKitObserver")
-            self.isObserving = false
-            self.logger.info("Stopped app-level HealthKit observer")
-        }
+        healthKitService.stopObserving(for: "AppHealthKitObserver")
+        isObserving = false
+        logger.info("Stopped app-level HealthKit observer")
     }
 
     private func setupObservers() {
         // Calculate broad date range for all health data (covers all use cases)
         let today = Date()
-        let startDate = today.adding(-90, .day, using: .autoupdatingCurrent) ?? today
+        let startDate =
+            today.adding(-Int(WeightRegressionDays), .day, using: .autoupdatingCurrent) ?? today
         let endDate = today.adding(1, .day, using: .autoupdatingCurrent) ?? today
 
         // Observe all HealthKit data types the app uses
@@ -63,7 +60,10 @@ public final class AppHealthKitObserver: @unchecked Sendable {
             from: startDate,
             to: endDate
         ) { [weak self] in
-            self?.onHealthKitDataChanged(dataTypes: dataTypes)
+            guard let self else { return }
+            Task {
+                await self.onHealthKitDataChanged(dataTypes: dataTypes)
+            }
         }
 
         isObserving = true
@@ -72,16 +72,14 @@ public final class AppHealthKitObserver: @unchecked Sendable {
         )
     }
 
-    private func onHealthKitDataChanged(dataTypes: [HealthKitDataType]) {
+    private func onHealthKitDataChanged(dataTypes: [HealthKitDataType]) async {
         logger.debug("HealthKit data changed for types: \(dataTypes.map(\.sampleType.identifier))")
 
         // Notify the HealthDataNotifications service (for view reactivity)
-        notifications.notifyDataChanged(for: dataTypes)
+        await notifications.notifyDataChanged(for: dataTypes)
 
-        // Trigger widget updates
-        Task {
-            await refreshWidgets()
-        }
+        // Trigger widget updates on main actor
+        await refreshWidgets()
     }
 
     @MainActor

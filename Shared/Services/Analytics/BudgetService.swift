@@ -37,8 +37,7 @@ public struct BudgetService: Sendable {
     /// Positive indicates under-budget, negative indicates over-budget.
     public var credit: Double? {
         guard let baseBudget = baseBudget else { return nil }
-        guard let smoothed = calories.smoothedIntake else { return nil }
-        return baseBudget - smoothed
+        return baseBudget - (calories.smoothedIntake ?? 0)
     }
 
     /// Adjusted daily budget: B' = B + C/D (kcal).

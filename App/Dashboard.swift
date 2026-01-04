@@ -37,7 +37,7 @@ struct DashboardWidgets: View {
             }
 
             DashboardCard(
-                title: "macros", icon: .macros, color: .macros
+                title: "Macros", icon: .macros, color: .macros
             ) {
                 MacrosComponent(
                     adjustment: goals.adjustment,

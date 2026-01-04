@@ -183,8 +183,7 @@ public struct AddMenu: View {
         }
         .transform {
             if #available(iOS 26, macOS 26, watchOS 26, *) {
-                $0.padding(8)
-                    .glassEffect(.regular, in: .buttonBorder)
+                $0.glassEffect(.regular, in: .circle)
                     .buttonStyle(.glass)
             } else {
                 $0.buttonStyle(.borderedProminent)

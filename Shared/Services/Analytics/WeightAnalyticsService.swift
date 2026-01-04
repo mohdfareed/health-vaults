@@ -54,10 +54,10 @@ public struct WeightAnalyticsService: Sendable {
     public var isValid: Bool {
         guard let range = weightDateRange else { return false }
 
-        // Data points must span at least 2 weeks
+        // Data points must span at least MinValidDataDays
         return range.from.distance(
             to: range.to, in: .day, using: .autoupdatingCurrent
-        ) ?? 0 >= 14
+        ) ?? 0 >= MinValidDataDays
     }
 
     /// EWMA-smoothed weight series (oldest first)

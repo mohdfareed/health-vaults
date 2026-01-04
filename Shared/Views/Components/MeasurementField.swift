@@ -30,6 +30,7 @@ struct MeasurementField<Unit: Dimension, Content: View>: View {
                         .disabled(!enabled)
                         .foregroundStyle(enabled ? .primary : .tertiary)
                         .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: true, vertical: true)
 
                         #if os(iOS)
                             .keyboardType(.decimalPad)
@@ -50,7 +51,7 @@ struct MeasurementField<Unit: Dimension, Content: View>: View {
                         #endif
 
                     if showPicker && $measurement.availableUnits().count > 1 {
-                        picker.frame(maxWidth: 12, maxHeight: 8).fixedSize()
+                        picker.frame(maxWidth: 12).fixedSize()
                     }
                 }.layoutPriority(-1)
             } label: {
@@ -117,7 +118,10 @@ struct MeasurementField<Unit: Dimension, Content: View>: View {
             } icon: {
                 Image(systemName: "arrow.clockwise")
             }.tag(nil as Unit?)
-        }.labelsHidden()
-            .animation(.default, value: $measurement.unit.wrappedValue)
+        } currentValueLabel: {
+            // Only show picker chevron icon
+        }
+        .labelsHidden()
+        .animation(.default, value: $measurement.unit.wrappedValue)
     }
 }

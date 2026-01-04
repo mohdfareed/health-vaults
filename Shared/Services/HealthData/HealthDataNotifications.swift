@@ -6,57 +6,51 @@ import SwiftUI
 // MARK: Health Data Change Notifications
 // ============================================================================
 
-/// Observable service for notifying views when HealthKit data changes
+/// Observable service for notifying views when HealthKit data changes.
+///
+/// Uses `@Observable` for SwiftUI reactivity. Property mutations are dispatched
+/// to the main thread for UI safety.
 @Observable
-public class HealthDataNotifications: @unchecked Sendable {
+public final class HealthDataNotifications: @unchecked Sendable {
+    /// Shared singleton instance.
     public static let shared = HealthDataNotifications()
 
-    /// Timestamp of last data change for each data type
+    /// Timestamp of last data change for each data type.
     public private(set) var lastUpdate: [HealthKitDataType: Date] = [:]
 
-    /// General data change trigger for UI updates
+    /// General data change trigger for UI updates.
     public private(set) var dataChangeTimestamp = Date()
 
-    private let logger = AppLogger.new(for: HealthDataNotifications.self)
-    private let queue = DispatchQueue(label: "HealthDataNotifications", qos: .utility)
+    private nonisolated let logger = AppLogger.new(for: HealthDataNotifications.self)
 
     private init() {
         logger.info("HealthDataNotifications service initialized")
     }
 
-    /// Notify that specific HealthKit data has changed
+    /// Notify that specific HealthKit data has changed.
+    /// Dispatches to main thread to ensure UI updates.
+    @MainActor
     public func notifyDataChanged(for dataTypes: [HealthKitDataType]) {
         let now = Date()
 
-        queue.async { [weak self] in
-            guard let self = self else { return }
-
-            for dataType in dataTypes {
-                self.lastUpdate[dataType] = now
-            }
-
-            DispatchQueue.main.async {
-                self.dataChangeTimestamp = now
-            }
+        for dataType in dataTypes {
+            lastUpdate[dataType] = now
         }
+        dataChangeTimestamp = now
 
         logger.debug(
             "Data change notification sent for types: \(dataTypes.map(\.sampleType.identifier))")
     }
 
-    /// Check if specific data type has been updated since a given date
+    /// Check if specific data type has been updated since a given date.
     public func hasUpdated(dataType: HealthKitDataType, since date: Date) -> Bool {
-        return queue.sync {
-            guard let lastUpdateTime = lastUpdate[dataType] else { return false }
-            return lastUpdateTime > date
-        }
+        guard let lastUpdateTime = lastUpdate[dataType] else { return false }
+        return lastUpdateTime > date
     }
 
-    /// Get the last update time for a specific data type
+    /// Get the last update time for a specific data type.
     public func getLastUpdate(for dataType: HealthKitDataType) -> Date? {
-        return queue.sync {
-            return lastUpdate[dataType]
-        }
+        return lastUpdate[dataType]
     }
 }
 

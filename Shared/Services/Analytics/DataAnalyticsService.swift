@@ -20,6 +20,30 @@ public struct DataAnalyticsService: Sendable {
             .mapValues { $0.sum() }
     }
 
+    /// Daily intakes with missing days filled using the average of existing values.
+    /// This prevents gaps in data from skewing EWMA calculations.
+    var dailyIntakesWithMissingDays: [Double] {
+        guard let range = intakeDateRange else { return [] }
+
+        let calendar = Calendar.autoupdatingCurrent
+        let average = dailyIntakes.values.average() ?? 0
+        var current = range.from
+        var values: [Double] = []
+
+        // Walk through each day in the range and fill missing days with average
+        while current <= range.to {
+            let floored = current.floored(to: .day, using: calendar) ?? current
+            if let value = dailyIntakes[floored] {
+                values.append(value)
+            } else {
+                values.append(average)
+            }
+            current = current.adding(1, .day, using: calendar) ?? current
+        }
+
+        return values
+    }
+
     /// Date range covered by historical intake data.
     var intakeDateRange: (from: Date, to: Date)? {
         let max = dailyIntakes.keys.sorted().max()
@@ -37,9 +61,10 @@ public struct DataAnalyticsService: Sendable {
     }
 
     /// EWMA-smoothed intake: S_t = α·C_{t-1} + (1-α)·S_{t-1}.
+    /// Uses average for missing days to prevent data gaps from skewing results.
     public var smoothedIntake: Double? {
         return computeEWMA(
-            from: dailyIntakes.points, alpha: alpha
+            from: dailyIntakesWithMissingDays, alpha: alpha
         )
     }
 

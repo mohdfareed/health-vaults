@@ -30,11 +30,7 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
                     selection: $record.date,
                     displayedComponents: [.date, .hourAndMinute]
                 ) {
-                    Label {
-                    } icon: {
-                        Image(systemName: "calendar")
-                            .foregroundStyle(.gray)
-                    }
+                    Label("Date", systemImage: "calendar")
                 }
                 .disabled(formType == .view)
             }

@@ -24,8 +24,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Debug HealthVaultsWidgets",
-      "program": "${workspaceFolder:health-vaults}/.build/debug/HealthVaultsWidgets",
-      "preLaunchTask": "swift: Build Debug HealthVaultsWidgets"
+      "preLaunchTask": "swift: Build Debug HealthVaultsWidgets",
+      "target": "HealthVaultsWidgets",
+      "configuration": "debug"
     },
     {
       "type": "swift",
@@ -33,8 +34,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Release HealthVaultsWidgets",
-      "program": "${workspaceFolder:health-vaults}/.build/release/HealthVaultsWidgets",
-      "preLaunchTask": "swift: Build Release HealthVaultsWidgets"
+      "preLaunchTask": "swift: Build Release HealthVaultsWidgets",
+      "target": "HealthVaultsWidgets",
+      "configuration": "release"
     },
     {
       "type": "swift",
@@ -42,8 +44,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Debug HealthVaultsApp",
-      "program": "${workspaceFolder:health-vaults}/.build/debug/HealthVaultsApp",
-      "preLaunchTask": "swift: Build Debug HealthVaultsApp"
+      "preLaunchTask": "swift: Build Debug HealthVaultsApp",
+      "target": "HealthVaultsApp",
+      "configuration": "debug"
     },
     {
       "type": "swift",
@@ -51,8 +54,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Release HealthVaultsApp",
-      "program": "${workspaceFolder:health-vaults}/.build/release/HealthVaultsApp",
-      "preLaunchTask": "swift: Build Release HealthVaultsApp"
+      "preLaunchTask": "swift: Build Release HealthVaultsApp",
+      "target": "HealthVaultsApp",
+      "configuration": "release"
     }
   ]
 }

@@ -13,18 +13,27 @@ public let AppName = String(localized: "HealthVaults")
 public let AppID = "com.MohdFareed.HealthVaults"
 
 /// Budget widget identifier for WidgetKit.
-public let BudgetWidgetID = "\(AppID).BudgetWidget"
+/// Uses a simple, stable string that matches between widget definition and refresh calls.
+public let BudgetWidgetID = "BudgetWidget"
 /// Macros widget identifier for WidgetKit.
-public let MacrosWidgetID = "\(AppID).MacrosWidget"
-
-/// Legacy widgets bundle identifier (compatibility).
-public let WidgetsID = "\(AppID).Widgets"
+/// Uses a simple, stable string that matches between widget definition and refresh calls.
+public let MacrosWidgetID = "MacrosWidget"
 /// HealthKit observers dispatch queue identifier.
 public let ObserversID = "\(AppID).Observers"
 /// App Groups container for shared data between app and widgets.
 public let AppGroupID = "group.\(AppID).shared"
 /// Source repository URL.
 public let RepoURL = "https://github.com/mohdfareed/health-vaults"
+
+// MARK: - Analytics Configuration
+// ============================================================================
+
+/// Number of days for weight regression window (maintenance estimation).
+/// Shorter windows are more responsive to recent trends but less stable.
+public let WeightRegressionDays: UInt = 30
+
+/// Minimum number of days of data required for valid maintenance estimates.
+public let MinValidDataDays = 14
 
 // MARK: - SwiftData Schema
 // ============================================================================

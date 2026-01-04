@@ -175,14 +175,16 @@ private struct MacroBudgetContent: View {
 
         switch widgetFamily {
         case .systemSmall:
-            HStack {
-                VStack(alignment: .leading) {
-                    HStack {
-                        Spacer()
-                        progressRing
-                    }
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
                     Spacer()
+                    progressRing
+                        .frame(width: 50, height: 50)
+                }
 
+                Spacer(minLength: 0)
+
+                VStack(alignment: .leading, spacing: 2) {
                     Text(remaining ?? 0, format: CalorieFieldDefinition().formatter)
                         .fontWeight(.bold)
                         .font(.title)
@@ -190,8 +192,8 @@ private struct MacroBudgetContent: View {
                         .contentTransition(.numericText(value: remaining ?? 0))
                     creditContent(format: formatter)
                 }
-                Spacer()
             }
+            .padding(4)
         case .systemMedium:
             VStack(alignment: .center, spacing: 0) {
                 remainingContent(format: formatter)

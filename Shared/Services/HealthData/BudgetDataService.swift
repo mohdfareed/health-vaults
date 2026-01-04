@@ -46,7 +46,8 @@ public final class BudgetDataService: @unchecked Sendable {
 
         guard let ewmaRange = yesterday?.dateRange(by: 7, using: .autoupdatingCurrent),
             let currentRange = date.dateRange(using: .autoupdatingCurrent),
-            let fittingRange = yesterday?.dateRange(by: 90, using: .autoupdatingCurrent)
+            let fittingRange = yesterday?.dateRange(
+                by: WeightRegressionDays, using: .autoupdatingCurrent)
         else {
             logger.error("Failed to calculate date ranges for budget data")
             isLoading = false
@@ -122,7 +123,8 @@ public final class BudgetDataService: @unchecked Sendable {
     public func startObserving(widgetId: String = "BudgetDataService") {
         let yesterday = date.adding(-1, .day, using: .autoupdatingCurrent)
         guard let currentRange = date.dateRange(using: .autoupdatingCurrent),
-            let fittingRange = yesterday?.dateRange(by: 90, using: .autoupdatingCurrent)
+            let fittingRange = yesterday?.dateRange(
+                by: WeightRegressionDays, using: .autoupdatingCurrent)
         else {
             logger.error("Failed to calculate date ranges for observation")
             return

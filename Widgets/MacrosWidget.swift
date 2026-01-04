@@ -90,7 +90,7 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
         -> MacrosEntry
     {
         // Ensure HealthKit observer is running in widget process
-        AppHealthKitObserver.shared.startObserving()
+        await AppHealthKitObserver.shared.startObserving()
 
         // Get current macros and adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals(for: goalsID)

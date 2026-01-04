@@ -10,6 +10,8 @@ struct ProgressRing: View {
     let thresholdColor: Color  // Threshold marker color
     let icon: Image?  // Optional center icon
 
+    @Environment(\.colorScheme) private var colorScheme
+
     var body: some View {
         GeometryReader { geometry in
             let size = min(geometry.size.width, geometry.size.height)
@@ -45,8 +47,9 @@ struct ProgressRing: View {
                     let x = cos(angle * .pi / 180) * radius + size / 2
                     let y = sin(angle * .pi / 180) * radius + size / 2
 
-                    Circle()  // Erase underlying ring behind the dot
-                        .fill(.background)
+                    // Erase underlying ring behind the dot using adaptive color
+                    Circle()
+                        .fill(eraserColor)
                         .frame(width: lineWidth * 1.4, height: lineWidth * 1.4)
                         .position(x: x, y: y)
 
@@ -66,6 +69,13 @@ struct ProgressRing: View {
             }
         }
         .aspectRatio(1, contentMode: .fit)
+    }
+
+    /// Adaptive eraser color that works in both app and widget contexts.
+    private var eraserColor: Color {
+        // Use explicit colors instead of semantic `.background` which
+        // doesn't work correctly in widget container backgrounds
+        colorScheme == .dark ? Color(white: 0.1) : Color(white: 0.95)
     }
 }
 

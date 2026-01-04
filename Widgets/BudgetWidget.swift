@@ -86,7 +86,7 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
         -> BudgetEntry
     {
         // Ensure HealthKit observer is running in widget process
-        AppHealthKitObserver.shared.startObserving()
+        await AppHealthKitObserver.shared.startObserving()
 
         // Get current adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals(for: goalsID)

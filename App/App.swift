@@ -41,8 +41,11 @@ import WidgetKit
 
         // MARK: - HealthKit Observer Setup
         // ====================================================================
-        AppHealthKitObserver.shared.startObserving()
-        self.logger.debug("Started HealthKit observer")
+        let observerLogger = self.logger
+        Task {
+            await AppHealthKitObserver.shared.startObserving()
+            observerLogger.debug("Started HealthKit observer")
+        }
 
         // MARK: - Background Task Setup
         // ====================================================================
@@ -95,8 +98,8 @@ import WidgetKit
         WindowGroup {
             AppView()
                 .modelContainer(self.container)
-                .onAppear {
-                    AppHealthKitObserver.shared.startObserving()
+                .task {
+                    await AppHealthKitObserver.shared.startObserving()
                 }
         }
     }
