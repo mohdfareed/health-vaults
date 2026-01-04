@@ -48,5 +48,3 @@ HealthVaults is an iOS application built with SwiftUI and SwiftData, integrated 
 7. **Collaboration**
    Be concise and focused. Avoid unnecessary verbosity. Always keep the user in the loop with relevant context.
    The user is your collaborator; work together to solve problems.
-
-**NOTE:** You can only build the project using `./Scripts/build.sh -b`

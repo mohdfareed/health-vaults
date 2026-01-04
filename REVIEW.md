@@ -48,6 +48,37 @@
 - ✅ Centralized HealthKit observer (`AppHealthKitObserver`)
 - ✅ Widget refresh system with App Groups
 - ✅ Reactive UI with `@Observable` pattern
+
+## Architecture Refactoring Session - July 1, 2025
+
+### Session Objective
+Design better architectural patterns for services layer:
+- **HealthKit Abstraction**: Currently scattered across multiple files with unclear boundaries
+- **Analytics Services**: Multiple service classes with overlapping responsibilities
+
+### User Requirements & Constraints
+- **Reactivity**: Need automatic UI updates when HealthKit data changes (granularity: data type + time range)
+- **Multi-target**: Both app and widgets need HealthKit data independently
+- **No background app**: App should not run in background; widgets handle own HealthKit service
+- **Memory management**: Avoid accidentally spawning many background observer queries
+- **Pagination concern**: Don't want non-loaded items changing to trigger reloads
+- **Current pain**: Lots of manual reloading logic due to observability issues
+
+### Current Architecture Issues Identified
+
+#### HealthKit Abstraction (`/Services/HealthKit/`, `/Services/HealthData/`)
+**Problems:**
+- Query logic split between `HealthKitService`, `DataService.swift`, and `Queries/` folder
+- `DataQuery` property wrapper mixing data fetching with pagination UI concerns
+- Multiple authentication and observer patterns scattered across files
+- Inconsistent error handling and async patterns
+
+#### Analytics Services (`/Services/Analytics/`)
+**Problems:**
+- Five separate service classes with unclear boundaries (Budget, DataAnalytics, MacroAnalytics, Statistics, Weight)
+- Services contain both computation logic and data fetching responsibilities
+- Overlapping functionality between analytics services and data services
+- Complex dependency injection patterns that aren't clearly documented
 - ✅ Background delivery support for widgets
 - ✅ Improved documentation and logging consistency
 
@@ -132,11 +163,3 @@
 3. **Data Validation**: Add input validation for manual entries
 4. **Performance**: Profile app with large datasets
 5. **Documentation**: Add inline code documentation for complex functions
-
-### Technical Debt
-
-- TODO: Add food name to calorie entries
-- TODO: Create reusable goals system
-- TODO: Create calorie entries preset system
-- TODO: Implement body-fat percentage for Hall's NIH model
-- FIXME: Address debug warnings in MainView.swift

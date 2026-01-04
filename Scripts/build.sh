@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-if [[ $1 == "-b" || $1 == "--beta"  ]]; then
+if [ "$1" = "-b" ] || [ "$1" = "--beta" ]; then
     echo "Building beta..."
     export DEVELOPER_DIR="/Applications/Xcode-beta.app/Contents/Developer"
 else

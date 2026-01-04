@@ -30,12 +30,12 @@ Built with SwiftUI and integrated with Apple HealthKit, the app tracks calorie i
 
 ### Implementation Parameters
 
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| EWMA α | 0.25 | 7-day smoothing factor |
-| Energy/Weight | 7700 kcal/kg | Conservative energy equivalent |
-| Weight Window | 90 days | Regression period for maintenance |
-| Min Valid Data | 14 days | Required for stable estimates |
+| Parameter      | Value        | Description                       |
+| -------------- | ------------ | --------------------------------- |
+| EWMA α         | 0.25         | 7-day smoothing factor            |
+| Energy/Weight  | 7700 kcal/kg | Conservative energy equivalent    |
+| Weight Window  | 90 days      | Regression period for maintenance |
+| Min Valid Data | 14 days      | Required for stable estimates     |
 
 ### Core Algorithms
 
@@ -104,3 +104,17 @@ where `-b|--beta` uses the beta Xcode coomand line tools.
 ## License
 
 This project is licensed under the [MIT License](./LICENSE).
+
+## TODO
+
+- [ ] Fix widgets backgrounds
+- [ ] Fix progress ring credit indicator background
+- [ ] Fix measurement field unit picker alignment
+- [ ] Time form field not right aligned
+- [ ] Categories cards missing vertical padding
+- [ ] Disable budget widget icon animation
+- [ ] Hide overview link icon when not calibrating
+- [ ] Fix macros dashboard section capitalization
+- [ ] Fix background usage
+- [ ] Stop using 3 months of data
+- [ ] Use average for missing days
