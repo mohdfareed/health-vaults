@@ -62,7 +62,30 @@ extension HealthKitService {
 
             activeObservers[observerKey] = observer
             self.store.execute(observer)
+
+            // Enable background delivery for this data type
+            enableBackgroundDelivery(for: dataType)
+
             logger.info("Started observing: \(observerKey)")
+        }
+    }
+
+    /// Enable background delivery for a HealthKit data type
+    /// This allows the system to wake the app/widget when data changes
+    private func enableBackgroundDelivery(for dataType: HealthKitDataType) {
+        store.enableBackgroundDelivery(
+            for: dataType.sampleType,
+            frequency: .immediate
+        ) { [weak self] success, error in
+            if let error = error {
+                self?.logger.error(
+                    "Failed to enable background delivery for \(dataType.sampleType.identifier): \(error)"
+                )
+            } else if success {
+                self?.logger.debug(
+                    "Background delivery enabled for \(dataType.sampleType.identifier)"
+                )
+            }
         }
     }
 

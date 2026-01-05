@@ -51,7 +51,7 @@ import WidgetKit
         // ====================================================================
         #if os(iOS)
             registerBackgroundTasks()
-            scheduleBackgroundRefresh()
+            Self.scheduleBackgroundRefresh()
             self.logger.debug("Registered background tasks")
         #endif
     }
@@ -66,11 +66,12 @@ import WidgetKit
                 forTaskWithIdentifier: "com.MohdFareed.HealthVaults.widget-refresh",
                 using: nil
             ) { task in
-                self.handleWidgetRefresh(task: task as! BGAppRefreshTask)
+                // BGTaskScheduler runs on background queue - avoid capturing self
+                Self.handleWidgetRefresh(task: task as! BGAppRefreshTask)
             }
         }
 
-        private func scheduleBackgroundRefresh() {
+        private static func scheduleBackgroundRefresh() {
             let request = BGAppRefreshTaskRequest(
                 identifier: "com.MohdFareed.HealthVaults.widget-refresh")
             request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)  // 15 minutes
@@ -78,7 +79,7 @@ import WidgetKit
             try? BGTaskScheduler.shared.submit(request)
         }
 
-        private func handleWidgetRefresh(task: BGAppRefreshTask) {
+        private static func handleWidgetRefresh(task: BGAppRefreshTask) {
             // Schedule the next refresh
             scheduleBackgroundRefresh()
 
