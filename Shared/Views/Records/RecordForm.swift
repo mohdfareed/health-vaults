@@ -66,20 +66,10 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
     @ToolbarContentBuilder
     private func viewButtons() -> some ToolbarContent {
         ToolbarItem(placement: .confirmationAction) {
-            if #available(iOS 26, macOS 26, watchOS 26, *) {
-                Button(role: .close) {
-                    dismiss()
-                } label: {
-                    Label("Done", systemImage: "checkmark")
-                }
-            } else {
-                Button {
-                    dismiss()
-                } label: {
-                    Label("Done", systemImage: "checkmark")
-                }
-                .buttonStyle(.bordered)
-                .buttonBorderShape(.circle)
+            Button(role: .close) {
+                dismiss()
+            } label: {
+                Label("Done", systemImage: "checkmark")
             }
         }
     }
@@ -111,23 +101,11 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            if #available(iOS 26, macOS 26, watchOS 26, *) {
-                LoadingButton(role: .confirm) {
-                    await save(record)
-                    dismiss()
-                } label: {
-
-                    Label("Save", systemImage: "checkmark")
-                }
-            } else {
-                LoadingButton(role: nil) {
-                    await save(record)
-                    dismiss()
-                } label: {
-                    Label("Save", systemImage: "checkmark")
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
+            LoadingButton(role: .confirm) {
+                await save(record)
+                dismiss()
+            } label: {
+                Label("Save", systemImage: "checkmark")
             }
         }
     }
@@ -142,22 +120,11 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
             }
         }
         ToolbarItem(placement: .confirmationAction) {
-            if #available(iOS 26, macOS 26, watchOS 26, *) {
-                LoadingButton(role: .confirm) {
-                    await save(record)
-                    dismiss()
-                } label: {
-                    Label("Add", systemImage: "plus")
-                }
-            } else {
-                LoadingButton(role: nil) {
-                    await save(record)
-                    dismiss()
-                } label: {
-                    Label("Add", systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .buttonBorderShape(.circle)
+            LoadingButton(role: .confirm) {
+                await save(record)
+                dismiss()
+            } label: {
+                Label("Add", systemImage: "plus")
             }
         }
     }

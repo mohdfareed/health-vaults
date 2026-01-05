@@ -67,7 +67,7 @@ $M = S_t - \Delta E$
 
 ### Requirements
 - Xcode 26.0+
-- iOS 18.0+ deployment target
+- iOS 26.0+ deployment target
 - Swift 6.2+
 
 ### Build Commands

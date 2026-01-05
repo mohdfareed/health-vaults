@@ -22,6 +22,9 @@ extension Color {
     public static var carbs: Color { .orange }
     public static var fat: Color { .green }
     public static var alcohol: Color { .indigo }
+
+    // Widget
+    public static var widgetBackground: Color { .init("WidgetBackground") }
 }
 
 // MARK: Iconography
@@ -50,13 +53,8 @@ extension Image {
     public static var calories: Image { .init(systemName: "flame.fill") }
     public static var weight: Image { .init(systemName: "figure") }
     public static var maintenance: Image {
-        if #available(iOS 26, macOS 26, watchOS 26, *) {
-            return .init(systemName: "flame.gauge.open")
-                .symbolRenderingMode(.hierarchical)
-        } else {
-            return .init(systemName: "gauge.with.needle")
-                .symbolRenderingMode(.hierarchical)
-        }
+        .init(systemName: "flame.gauge.open")
+            .symbolRenderingMode(.hierarchical)
     }
     public static var credit: Image {
         .init(systemName: "creditcard.circle")

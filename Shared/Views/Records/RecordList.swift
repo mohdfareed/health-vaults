@@ -54,18 +54,9 @@ struct RecordList<T: HealthData>: View {
 
         .toolbar {
             ToolbarItem {
-                if #available(iOS 26, macOS 26, watchOS 26, *) {
-                    Button("Add", systemImage: "plus") {
-                        isCreating = true
-                    }
-                } else {
-                    Button("Add", systemImage: "plus") {
-                        isCreating = true
-                    }
-                    .buttonStyle(.bordered)
-                    .buttonBorderShape(.circle)
+                Button("Add", systemImage: "plus") {
+                    isCreating = true
                 }
-
             }
         }
 
@@ -182,18 +173,13 @@ public struct AddMenu: View {
                 .padding(4)
         }
         .transform {
-            if #available(iOS 26, macOS 26, watchOS 26, *) {
-                $0.glassEffect(.regular, in: .circle)
-                    .buttonStyle(.glass)
-            } else {
-                $0.buttonStyle(.borderedProminent)
-            }
+            $0.glassEffect(.regular, in: .circle)
+                .buttonStyle(.glass)
         }
         .buttonBorderShape(.circle)
     }
 }
 
-@available(iOS 26, macOS 26, watchOS 26, *)
 public struct AddButton: View {
     @Environment(\.tabViewBottomAccessoryPlacement) var placement
 

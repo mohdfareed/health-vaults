@@ -17,7 +17,7 @@ struct Project {
 
 let package = Package(
     name: Project.name,
-    platforms: [.iOS(.v18), .watchOS(.v11), .macOS(.v26)],
+    platforms: [.iOS(.v26), .watchOS(.v26), .macOS(.v26)],
 
     products: [
         .library(
