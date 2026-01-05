@@ -92,24 +92,16 @@ public struct OverviewComponent: View {
             .refreshable {
                 await refresh()
             }
-            .onAppear {
-                Task {
-                    await refresh()
-                }
+            .task {
+                await refresh()
+            }
+            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
+                await refresh()
             }
 
             .animation(.default, value: macrosDataService.macrosService != nil)
             .animation(.default, value: macrosDataService.isLoading)
             .animation(.default, value: budgetDataService.isLoading)
-
-            .onAppear {
-                logger.debug("OverviewPage appeared, starting observers")
-                budgetDataService.startObserving(widgetId: "OverviewPage.Budget")
-            }
-            .onDisappear {
-                logger.debug("OverviewPage disappeared, stopping observers")
-                budgetDataService.stopObserving(widgetId: "OverviewPage.Budget")
-            }
         }
     }
 
@@ -192,35 +184,7 @@ public struct OverviewComponent: View {
     @ViewBuilder var macrosPage: some View {
         Section {
             NavigationLink(
-                destination: NavigationStack {
-                    List {
-                        proteinSection
-                    }
-                    .refreshable {
-                        await refresh()
-                    }
-                    .onAppear {
-                        Task {
-                            await refresh()
-                        }
-                    }
-
-                    .animation(.default, value: macrosDataService.macrosService != nil)
-                    .animation(.default, value: macrosDataService.isLoading)
-                    .animation(.default, value: budgetDataService.isLoading)
-
-                    .onAppear {
-                        logger.debug("OverviewPage appeared, starting observers")
-                        budgetDataService.startObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.startObserving(widgetId: "OverviewPage.Macros")
-                    }
-                    .onDisappear {
-                        logger.debug("OverviewPage disappeared, stopping observers")
-                        budgetDataService.stopObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.stopObserving(widgetId: "OverviewPage.Macros")
-                    }
-                }
-                .navigationTitle("Protein")
+                destination: macroDetailPage(title: "Protein", content: proteinSection)
             ) {
                 DetailedRow(image: Image.protein, tint: .protein) {
                     Text("Protein")
@@ -230,38 +194,7 @@ public struct OverviewComponent: View {
             }
 
             NavigationLink(
-                destination: NavigationStack {
-                    List {
-                        carbsSection
-                    }
-                    .refreshable {
-                        await refresh()
-                    }
-                    .onAppear {
-                        Task {
-                            await refresh()
-                        }
-                    }
-
-                    .animation(.default, value: macrosDataService.macrosService != nil)
-                    .animation(.default, value: macrosDataService.isLoading)
-                    .animation(.default, value: budgetDataService.isLoading)
-
-                    .onAppear {
-                        logger.debug("OverviewPage appeared, starting observers")
-                        budgetDataService.startObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.startObserving(widgetId: "OverviewPage.Macros")
-                        Task {
-                            await refresh()
-                        }
-                    }
-                    .onDisappear {
-                        logger.debug("OverviewPage disappeared, stopping observers")
-                        budgetDataService.stopObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.stopObserving(widgetId: "OverviewPage.Macros")
-                    }
-                }
-                .navigationTitle("Carbohydrates")
+                destination: macroDetailPage(title: "Carbohydrates", content: carbsSection)
             ) {
                 DetailedRow(image: Image.carbs, tint: .carbs) {
                     Text("Carbs")
@@ -271,38 +204,7 @@ public struct OverviewComponent: View {
             }
 
             NavigationLink(
-                destination: NavigationStack {
-                    List {
-                        fatSection
-                    }
-                    .refreshable {
-                        await refresh()
-                    }
-                    .onAppear {
-                        Task {
-                            await refresh()
-                        }
-                    }
-
-                    .animation(.default, value: macrosDataService.macrosService != nil)
-                    .animation(.default, value: macrosDataService.isLoading)
-                    .animation(.default, value: budgetDataService.isLoading)
-
-                    .onAppear {
-                        logger.debug("OverviewPage appeared, starting observers")
-                        budgetDataService.startObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.startObserving(widgetId: "OverviewPage.Macros")
-                        Task {
-                            await refresh()
-                        }
-                    }
-                    .onDisappear {
-                        logger.debug("OverviewPage disappeared, stopping observers")
-                        budgetDataService.stopObserving(widgetId: "OverviewPage.Budget")
-                        macrosDataService.stopObserving(widgetId: "OverviewPage.Macros")
-                    }
-                }
-                .navigationTitle("Fat")
+                destination: macroDetailPage(title: "Fat", content: fatSection)
             ) {
                 DetailedRow(image: Image.fat, tint: .fat) {
                     Text("Fat")
@@ -316,6 +218,29 @@ public struct OverviewComponent: View {
             Text(
                 "Macros are calculated based on the calorie budget."
             )
+        }
+    }
+
+    @ViewBuilder
+    private func macroDetailPage<Content: View>(title: String, content: Content) -> some View {
+        NavigationStack {
+            List {
+                content
+            }
+            .navigationTitle(title)
+            .refreshable {
+                await refresh()
+            }
+            .task {
+                await refresh()
+            }
+            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
+                await refresh()
+            }
+
+            .animation(.default, value: macrosDataService.macrosService != nil)
+            .animation(.default, value: macrosDataService.isLoading)
+            .animation(.default, value: budgetDataService.isLoading)
         }
     }
 

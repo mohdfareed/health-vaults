@@ -57,7 +57,7 @@ struct AppView: View {
             AddMenu { dataModel in
                 activeDataModel = dataModel
             }
-            .padding(.bottom, 48)
+            .padding(.bottom, 64)
             .padding(.trailing, 8)
         }
 
