@@ -38,17 +38,8 @@ enum WidgetsSettings {
 extension View {
     @ViewBuilder
     func widgetBackground() -> some View {
-        if #available(iOS 26.0, *) {
-            // iOS 26: Use Liquid Glass effect for modern translucent appearance
-            self.containerBackground(for: .widget) {
-                Color.clear.glassEffect()
-            }
-        } else if #available(iOS 17.0, *) {
-            self.containerBackground(for: .widget) {
-                Color.clear
-            }
-        } else {
-            self
+        self.containerBackground(for: .widget) {
+            Color.widgetBackground
         }
     }
 }

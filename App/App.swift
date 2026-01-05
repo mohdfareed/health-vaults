@@ -98,9 +98,6 @@ import WidgetKit
         WindowGroup {
             AppView()
                 .modelContainer(self.container)
-                .task {
-                    await AppHealthKitObserver.shared.startObserving()
-                }
         }
     }
 }
