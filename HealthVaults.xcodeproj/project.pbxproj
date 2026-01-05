@@ -614,6 +614,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults;
 				PRODUCT_NAME = HealthVaults;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -642,6 +643,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults;
 				PRODUCT_NAME = HealthVaults;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
