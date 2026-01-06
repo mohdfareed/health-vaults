@@ -102,7 +102,7 @@ public final class BudgetDataService: @unchecked Sendable {
 
         let weightData = await healthKitService.fetchStatistics(
             for: .bodyMass,
-            from: fittingRange.from, to: fittingRange.to,
+            from: fittingRange.from, to: currentRange.to,
             interval: .daily,
             options: .discreteAverage
         )
@@ -113,11 +113,10 @@ public final class BudgetDataService: @unchecked Sendable {
             calories: DataAnalyticsService(
                 currentIntakes: currentCalorieData,
                 intakes: maintenanceCalorieData,
-                alpha: 0.25  // 7 days - match weight smoothing window
+                alpha: 0.25  // 7 days - for smoothed intake in maintenance calc
             ),
             weights: weightData,
-            rho: 7700,  // More conservative: 7700 kcal/kg
-            alpha: 0.25  // 7 days - consistent smoothing window
+            rho: 7700  // Conservative: 7700 kcal/kg
         )
 
         // Create budget service with injected first weekday

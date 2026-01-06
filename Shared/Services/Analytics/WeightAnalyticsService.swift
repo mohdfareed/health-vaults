@@ -16,9 +16,6 @@ public struct WeightAnalyticsService: Sendable {
     /// Energy per unit weight change (kcal per kg, default is 7700)
     let rho: Double
 
-    /// Smoothing window length for weight EWMA (days)
-    let alpha: Double
-
     /// Daily weight buckets.
     var dailyWeights: [Date: Double] {
         return weights.bucketed(by: .day, using: .autoupdatingCurrent)
@@ -60,32 +57,18 @@ public struct WeightAnalyticsService: Sendable {
         ) ?? 0 >= MinValidDataDays
     }
 
-    /// EWMA-smoothed weight series (oldest first)
-    private var smoothedWeightsSeries: [(date: Date, value: Double)] {
-        let sorted = dailyWeights.sorted { $0.key < $1.key }
-        guard !sorted.isEmpty else { return [] }
-
-        var series: [(Date, Double)] = []
-        var smoothed = sorted[0].value
-        series.append((sorted[0].key, smoothed))
-
-        for (date, value) in sorted.dropFirst() {
-            smoothed = alpha * value + (1 - alpha) * smoothed
-            series.append((date, smoothed))
-        }
-        return series
-    }
-
     /// Computes the slope (Δy/Δx) of time-series data using least-squares linear regression.
+    /// Uses RAW weights (not EWMA) - linear regression already handles noise.
     /// - Returns: the slope in units per day (e.g., kg/day)
     private var computeSlope: Double {
-        // Use smoothed weight series
-        let series = smoothedWeightsSeries
-        guard series.count > 1 else { return 0 }
+        // Use raw daily weights for accurate slope
+        let sorted = dailyWeights.sorted { $0.key < $1.key }
+        guard sorted.count > 1 else { return 0 }
 
-        // Convert to (t, w) arrays
-        let t = series.map { $0.date.timeIntervalSince(series.first!.date) / 86_400 }
-        let w = series.map { $0.value }
+        // Convert to (t, w) arrays where t is days since first measurement
+        let firstDate = sorted.first!.key
+        let t = sorted.map { $0.key.timeIntervalSince(firstDate) / 86_400 }
+        let w = sorted.map { $0.value }
         let n = t.count
 
         let meanX = t.reduce(0, +) / Double(n)
