@@ -4,22 +4,22 @@ import SwiftUI
 import WidgetKit
 
 // TODO: Implement body-fat percentage calculations to implement
-// Hall’s NIH dynamic model of energy imbalance
+// Hall's NIH dynamic model of energy imbalance
 
 /// Weight analytics service for maintenance calorie estimation.
-/// Implements linear regression on weight trends to estimate energy balance.
+/// Implements weighted linear regression on weight trends to estimate energy balance.
 ///
 /// ## Algorithm
-/// Uses a unified 28-day window for both regression and confidence:
-/// 1. Linear regression on weight data within the window → raw slope
-/// 2. Raw maintenance = EWMA(intake) - (slope × ρ / 7)
+/// Uses a unified 28-day window with exponential decay weighting:
+/// 1. Weighted linear regression on weight data → raw slope (recent data weighted higher)
+/// 2. Raw maintenance = EWMA(intake, α=0.1) - (slope × ρ / 7)
 /// 3. Confidence = (points/minPoints) × (span/windowDays)
 /// 4. Final maintenance = raw × confidence + baseline × (1 - confidence)
 ///
-/// Only the final maintenance is blended toward baseline; the slope is
-/// clamped for safety but not damped, preserving the true trend signal.
-public struct WeightAnalyticsService: Sendable {
-    let calories: DataAnalyticsService
+/// The weighted regression responds faster to recent changes while the long-term
+/// EWMA for intake prevents single-day spikes from affecting maintenance.
+public struct MaintenanceService: Sendable {
+    let calories: IntakeAnalyticsService
 
     /// Recent daily weights (kg), oldest first
     let weights: [Date: Double]
@@ -73,14 +73,15 @@ public struct WeightAnalyticsService: Sendable {
         return rawWeightSlope.clamped(to: -MaxWeightLossPerWeek...MaxWeightGainPerWeek)
     }
 
-    /// Raw weight slope from linear regression (kg/week).
+    /// Raw weight slope from weighted linear regression (kg/week).
     public var rawWeightSlope: Double {
-        return computeSlope * 7
+        return computeWeightedSlope * 7
     }
 
     /// Raw maintenance estimate before confidence blending (kcal/day).
+    /// Uses long-term EWMA (α=0.1) to ignore single-day intake spikes.
     public var rawMaintenance: Double {
-        guard let smoothed = calories.smoothedIntake else {
+        guard let smoothed = calories.longTermSmoothedIntake else {
             return BaselineMaintenance
         }
         // M = intake - (slope × ρ / 7)
@@ -104,30 +105,41 @@ public struct WeightAnalyticsService: Sendable {
             && calories.isValid
     }
 
-    /// Computes the slope (kg/day) using least-squares linear regression
-    /// on data within the regression window.
-    private var computeSlope: Double {
+    /// Computes the slope (kg/day) using weighted least-squares linear regression.
+    /// Recent data points are weighted exponentially higher (decay = RegressionDecay per day).
+    /// This makes the regression responsive to recent trends while still using historical context.
+    private var computeWeightedSlope: Double {
         let sorted = windowWeights.sorted { $0.key < $1.key }
         guard sorted.count > 1 else { return 0 }
 
-        // Convert to (t, w) arrays where t is days since first measurement
-        let firstDate = sorted.first!.key
-        let t = sorted.map { $0.key.timeIntervalSince(firstDate) / 86_400 }
-        let w = sorted.map { $0.value }
-        let n = t.count
+        let today = Date()
 
-        let meanX = t.reduce(0, +) / Double(n)
-        let meanY = w.reduce(0, +) / Double(n)
-
-        let numerator = zip(t, w).reduce(0) { acc, pair in
-            let (x, y) = pair
-            return acc + (x - meanX) * (y - meanY)
+        // Calculate weights: w_i = decay^(days_ago)
+        // More recent = higher weight
+        let dataWithWeights: [(t: Double, w: Double, weight: Double)] = sorted.map { entry in
+            let daysAgo = today.timeIntervalSince(entry.key) / 86_400
+            let regressionWeight = pow(RegressionDecay, daysAgo)
+            let t = entry.key.timeIntervalSince(sorted.first!.key) / 86_400
+            return (t: t, w: entry.value, weight: regressionWeight)
         }
 
-        let denominator = t.reduce(0) { acc, x in
-            let dx = x - meanX
-            return acc + dx * dx
+        // Weighted means
+        let totalWeight = dataWithWeights.reduce(0) { $0 + $1.weight }
+        guard totalWeight > 0 else { return 0 }
+
+        let meanX = dataWithWeights.reduce(0) { $0 + $1.t * $1.weight } / totalWeight
+        let meanY = dataWithWeights.reduce(0) { $0 + $1.w * $1.weight } / totalWeight
+
+        // Weighted covariance and variance
+        let numerator = dataWithWeights.reduce(0) { acc, point in
+            acc + point.weight * (point.t - meanX) * (point.w - meanY)
         }
+
+        let denominator = dataWithWeights.reduce(0) { acc, point in
+            let dx = point.t - meanX
+            return acc + point.weight * dx * dx
+        }
+
         return denominator != 0 ? numerator / denominator : 0
     }
 }

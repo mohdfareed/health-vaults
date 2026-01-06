@@ -2,12 +2,12 @@ import Foundation
 import SwiftData
 import SwiftUI
 
-// MARK: - Data Analytics Service
+// MARK: - Intake Analytics Service
 // ============================================================================
 
 /// Core analytics service implementing EWMA smoothing for intake data.
 /// Used for both calorie tracking (28-day window) and macro tracking (7-day window).
-public struct DataAnalyticsService: Sendable {
+public struct IntakeAnalyticsService: Sendable {
     /// Current day's intake values.
     let currentIntakes: [Date: Double]
     /// Historical daily intake values.
@@ -126,11 +126,19 @@ public struct DataAnalyticsService: Sendable {
             && dataSpanDays >= Double(windowDays) * 0.5
     }
 
-    /// EWMA-smoothed intake: S_t = α·C_{t-1} + (1-α)·S_{t-1}.
+    /// EWMA-smoothed intake using configured alpha (for display, responsive).
     /// Uses average for missing days to prevent data gaps from skewing results.
     public var smoothedIntake: Double? {
         return computeEWMA(
             from: dailyIntakesWithMissingDays, alpha: alpha
+        )
+    }
+
+    /// Long-term EWMA-smoothed intake using MaintenanceAlpha (for maintenance calc, stable).
+    /// Ignores single-day spikes to provide stable baseline for TDEE estimation.
+    public var longTermSmoothedIntake: Double? {
+        return computeEWMA(
+            from: dailyIntakesWithMissingDays, alpha: MaintenanceAlpha
         )
     }
 

@@ -14,9 +14,9 @@ public struct MacrosAnalyticsService: Sendable {
     // MARK: - Properties
 
     public let calories: BudgetService?
-    public let protein: DataAnalyticsService
-    public let carbs: DataAnalyticsService
-    public let fat: DataAnalyticsService
+    public let protein: IntakeAnalyticsService
+    public let carbs: IntakeAnalyticsService
+    public let fat: IntakeAnalyticsService
 
     /// User-defined budget adjustment (kcal)
     public let adjustments: CalorieMacros?

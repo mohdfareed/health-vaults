@@ -100,7 +100,7 @@ public final class MacrosDataService: @unchecked Sendable {
 
         // Create analytics services for each macro-nutrient
         // Use 7-day window with 4 data points minimum (lighter than calorie requirements)
-        let proteinAnalytics = DataAnalyticsService(
+        let proteinAnalytics = IntakeAnalyticsService(
             currentIntakes: currentProteinData,
             intakes: proteinData,
             alpha: 0.25,
@@ -108,7 +108,7 @@ public final class MacrosDataService: @unchecked Sendable {
             minDataPoints: 4
         )
 
-        let carbsAnalytics = DataAnalyticsService(
+        let carbsAnalytics = IntakeAnalyticsService(
             currentIntakes: currentCarbsData,
             intakes: carbsData,
             alpha: 0.25,
@@ -116,7 +116,7 @@ public final class MacrosDataService: @unchecked Sendable {
             minDataPoints: 4
         )
 
-        let fatAnalytics = DataAnalyticsService(
+        let fatAnalytics = IntakeAnalyticsService(
             currentIntakes: currentFatData,
             intakes: fatData,
             alpha: 0.25,

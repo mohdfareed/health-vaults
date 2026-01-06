@@ -5,14 +5,13 @@ import WidgetKit
 // MARK: - Budget Analytics Service
 // ============================================================================
 
-/// Core budget calculations using cumulative weekly credit and maintenance estimation.
-/// Implements the mathematical specification from README.md.
+/// Core budget calculations using rolling 7-day credit and weekly repayment schedule.
 public struct BudgetService: Sendable {
-    public let calories: DataAnalyticsService
-    public let weight: WeightAnalyticsService
+    public let calories: IntakeAnalyticsService
+    public let weight: MaintenanceService
 
-    /// Actual daily intake from week start to yesterday (for credit calculation).
-    public let weekIntakes: [Date: Double]
+    /// Actual daily intake for the last 7 days (for rolling credit calculation).
+    public let rollingIntakes: [Date: Double]
 
     /// User-defined daily calorie adjustment (kcal).
     public let adjustment: Double?
@@ -21,30 +20,16 @@ public struct BudgetService: Sendable {
     /// The reference date for calculations (typically today).
     public let currentDate: Date
 
-    /// Start of the current week based on firstWeekday setting.
-    private var weekStart: Date? {
-        currentDate.previous(firstWeekday, using: .autoupdatingCurrent)
-    }
+    /// Maximum daily adjustment from credit (kcal). Prevents extreme budgets.
+    private let maxDailyAdjustment: Double = 500
 
-    /// Days elapsed from week start to yesterday (days with credit impact).
-    /// Returns 0 if today is the first day of the week.
-    public var daysElapsed: Int {
-        guard let weekStart = weekStart else { return 0 }
-        let yesterday = currentDate.adding(-1, .day, using: .autoupdatingCurrent)
-        guard let yesterday = yesterday else { return 0 }
-
-        // If yesterday is before week start, no days have elapsed yet
-        if yesterday < weekStart { return 0 }
-
-        return weekStart.distance(to: yesterday, in: .day, using: .autoupdatingCurrent)! + 1
-    }
-
-    /// Days remaining in current weekly budget cycle (including today).
+    /// Days remaining until next firstWeekday (including today).
     public var daysLeft: Int {
         let cal = Calendar.autoupdatingCurrent
-        let nextWeek = currentDate.next(firstWeekday, using: cal)!
-        let daysLeft = currentDate.distance(to: nextWeek, in: .day, using: cal)!
-        return daysLeft
+        guard let nextWeek = currentDate.next(firstWeekday, using: cal),
+            let days = currentDate.distance(to: nextWeek, in: .day, using: cal)
+        else { return 7 }
+        return max(1, days)  // At least 1 to avoid division by zero
     }
 
     /// Base daily budget: B = M + A (kcal).
@@ -54,23 +39,26 @@ public struct BudgetService: Sendable {
         return weight.maintenance + adjustment
     }
 
-    /// Weekly calorie credit: C = (B × days_elapsed) - actual_intake (kcal).
+    /// Rolling 7-day calorie credit: C = (B × daysLogged) - actualIntake (kcal).
     /// Positive indicates under-budget (banked calories), negative indicates over-budget (debt).
+    /// Only counts days with logged data - missing days don't inflate credit.
     public var credit: Double {
-        // If no days have elapsed yet (today is first day of week), credit is 0
-        guard daysElapsed > 0 else { return 0 }
-
-        // Sum actual intake from week start to yesterday
-        let actualIntake = weekIntakes.values.sum()
-
-        // Credit = what you should have eaten - what you actually ate
-        return (baseBudget * Double(daysElapsed)) - actualIntake
+        let actualIntake = rollingIntakes.values.sum()
+        let daysLogged = Double(rollingIntakes.count)
+        // Credit = what you should have eaten - what you actually ate (for logged days only)
+        return (baseBudget * daysLogged) - actualIntake
     }
 
-    /// Adjusted daily budget: B' = B + C/D (kcal).
-    /// Distributes weekly credit across remaining days in cycle.
+    /// Daily credit adjustment, capped to prevent extreme budgets.
+    public var dailyAdjustment: Double {
+        let raw = credit / Double(daysLeft)
+        return max(-maxDailyAdjustment, min(maxDailyAdjustment, raw))
+    }
+
+    /// Adjusted daily budget: B' = B + clamp(C/daysLeft) (kcal).
+    /// Distributes credit over remaining days until next firstWeekday, with safety cap.
     public var budget: Double {
-        return baseBudget + (credit / Double(daysLeft))
+        return baseBudget + dailyAdjustment
     }
 
     /// Remaining budget for today: R = B' - I (kcal).

@@ -1,51 +1,54 @@
 # HealthVaults Project Review
 
-## Current State (Jan 5, 2026)
+## Current State (Jan 6, 2026)
 
-### Analytics System
-**Unified 28-day Window** for calorie/weight analytics:
-- Confidence: `(points/minPoints) × (span/windowDays)`
-- Maintenance blends toward 2000 kcal baseline when confidence is low
-- Credit system works without requiring full calibration
+### Budget System
+
+**Core Formula:**
+```
+Today's Budget = Maintenance + Goal + Credit Adjustment
+```
+
+**Key Concepts:**
+- **Maintenance**: Calories you burn per day (learned from weight trends)
+- **Credit**: Over/under from past 7 days, spread to next week reset
+- **Credit Adjustment**: `credit / daysLeft`, capped at ±500 kcal/day
 
 **Config Constants:**
 | Constant | Value | Purpose |
 |----------|-------|---------|
-| `RegressionWindowDays` | 28 | Window for regression + confidence |
-| `MinWeightDataPoints` | 7 | ~2 measurements per week |
-| `MinCalorieDataPoints` | 14 | ~50% of days tracked |
+| `RegressionWindowDays` | 28 | Data window for maintenance calculation |
+| `RegressionDecay` | 0.9 | Daily weight decay (recent data weighted higher) |
+| `MaintenanceAlpha` | 0.1 | Long-term EWMA for maintenance intake |
+| `DisplayAlpha` | 0.25 | Short-term EWMA for display |
+| `MaxDailyAdjustment` | 500 | Cap on credit adjustment (kcal/day) |
+| `MinWeightDataPoints` | 7 | Required for valid maintenance |
+| `MinCalorieDataPoints` | 14 | Required for valid maintenance |
 | `BaselineMaintenance` | 2000 | Default when data insufficient |
 
 ### Shared Settings
 - `SharedDefaults` = `UserDefaults(suiteName: AppGroupID)`
 - Used by both app and widgets via `@AppStorage(.key, store: SharedDefaults)`
-- Settings changed in app immediately available to widgets
 
 ### Widget Updates
-**Primary Mechanisms:**
-- `AppHealthKitObserver` - listens to HealthKit changes, reloads specific widgets
-- `AppLocale` bindings - reload on unit system or firstDayOfWeek change
+- `AppHealthKitObserver` - listens to HealthKit changes, reloads widgets
+- `AppLocale` bindings - reload on unit/firstDayOfWeek change
 - `GoalsView` - reload on goals save
-- Background refresh task - periodic refresh
-
-**Note:** Widgets run in separate processes - HealthKit observer in widgets is pointless.
 
 ---
 
 ## Architecture Refactor Plan v1.0
 
 ### Phase 1: Observer Consolidation
-**Goal:** Merge observer mechanisms into single `HealthKitObserver`
-
-- [ ] Step 1.3: Inline HealthKitObservers extension into main observer
-- [ ] Step 1.4: Rename and clean up API
+- [ ] Inline HealthKitObservers extension into main observer
+- [ ] Rename and clean up API
 
 ### Phase 2: HealthKit Layer (7 files → 3)
 - [ ] Merge Authorization, DataTypes, Units into HealthKitService
 - [ ] Consolidate Samples + Statistics into HealthKitQueries
 
 ### Phase 3: Generic Data Loading
-- [ ] Replace per-type DataService with generic loader or view-local loading
+- [ ] Replace per-type DataService with generic loader
 
 ### Phase 4: Analytics Simplification
 - [ ] Extract EWMA and regression as standalone functions

@@ -46,21 +46,18 @@ public final class BudgetDataService: @unchecked Sendable {
         let today = date.floored(to: .day, using: cal) ?? date
         let yesterday = today.adding(-1, .day, using: cal)
 
-        // Read user's first day of week setting, convert to Calendar weekday int (1-7, Sunday=1)
+        // Rolling 7-day window: from 7 days ago to yesterday
+        let rolling7DaysAgo = today.adding(-7, .day, using: cal)
+
+        // Read user's first day of week setting for repayment schedule
         let storedWeekday: Weekday? = SharedDefaults.rawRepresentable(for: .firstDayOfWeek)
-        let firstWeekday: Int
-        if let weekday = storedWeekday {
-            firstWeekday = weekday.calendarValue
-        } else {
-            firstWeekday = cal.firstWeekday  // Use system calendar default
-        }
-        let weekStart = today.previous(firstWeekday, using: cal)
+        let firstWeekday = storedWeekday?.calendarValue ?? cal.firstWeekday
 
         guard let ewmaRange = yesterday?.dateRange(by: 7, using: cal),
             let currentRange = today.dateRange(using: cal),
             let fittingRange = yesterday?.dateRange(
                 by: RegressionWindowDays, using: cal),
-            let weekStart = weekStart,
+            let rolling7DaysAgo = rolling7DaysAgo,
             let yesterday = yesterday
         else {
             logger.error("Failed to calculate date ranges for budget data")
@@ -68,10 +65,9 @@ public final class BudgetDataService: @unchecked Sendable {
             return
         }
 
-        // Calculate week range (week start to yesterday, for credit)
-        // Only fetch if yesterday >= weekStart (i.e., not first day of week)
-        let weekRangeFrom = weekStart
-        let weekRangeTo = max(weekStart, yesterday.ceiled(to: .day, using: cal) ?? yesterday)
+        // Rolling 7-day range for credit (7 days ago to yesterday)
+        let rollingRangeFrom = rolling7DaysAgo
+        let rollingRangeTo = yesterday.ceiled(to: .day, using: cal) ?? yesterday
 
         // Fetch data
 
@@ -82,18 +78,13 @@ public final class BudgetDataService: @unchecked Sendable {
             options: .cumulativeSum
         )
 
-        // Fetch week's intake for credit calculation (week start to yesterday)
-        let weekCalorieData: [Date: Double]
-        if yesterday >= weekStart {
-            weekCalorieData = await healthKitService.fetchStatistics(
-                for: .dietaryCalories,
-                from: weekRangeFrom, to: weekRangeTo,
-                interval: .daily,
-                options: .cumulativeSum
-            )
-        } else {
-            weekCalorieData = [:]
-        }
+        // Fetch rolling 7-day intake for credit calculation
+        let rollingCalorieData = await healthKitService.fetchStatistics(
+            for: .dietaryCalories,
+            from: rollingRangeFrom, to: rollingRangeTo,
+            interval: .daily,
+            options: .cumulativeSum
+        )
 
         let maintenanceCalorieData = await healthKitService.fetchStatistics(
             for: .dietaryCalories,
@@ -118,8 +109,8 @@ public final class BudgetDataService: @unchecked Sendable {
 
         // Create analytics services
 
-        let weightAnalytics = WeightAnalyticsService(
-            calories: DataAnalyticsService(
+        let weightAnalytics = MaintenanceService(
+            calories: IntakeAnalyticsService(
                 currentIntakes: currentCalorieData,
                 intakes: maintenanceCalorieData,
                 alpha: 0.25  // 7 days - for smoothed intake in maintenance calc
@@ -128,15 +119,15 @@ public final class BudgetDataService: @unchecked Sendable {
             rho: 7700  // Conservative: 7700 kcal/kg
         )
 
-        // Create budget service with injected first weekday
+        // Create budget service with rolling 7-day credit and weekly repayment
         let newBudgetService = BudgetService(
-            calories: DataAnalyticsService(
+            calories: IntakeAnalyticsService(
                 currentIntakes: currentCalorieData,
                 intakes: calorieData,
                 alpha: 0.25  // 7 days
             ),
             weight: weightAnalytics,
-            weekIntakes: weekCalorieData,
+            rollingIntakes: rollingCalorieData,
             adjustment: adjustment,
             firstWeekday: firstWeekday,
             currentDate: today

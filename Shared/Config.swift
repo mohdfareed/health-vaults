@@ -35,6 +35,21 @@ public let RepoURL = "https://github.com/mohdfareed/health-vaults"
 /// reliable TDEE estimation via weight tracking.
 public let RegressionWindowDays: UInt = 28
 
+/// Weighted regression decay factor (per day).
+/// Controls how quickly old weight data loses influence.
+/// 0.9 → last 7 days ≈ 52% of total weight in regression.
+public let RegressionDecay = 0.9
+
+/// EWMA alpha for maintenance calculation (long-term intake pattern).
+/// Low value = stable, ignores single-day spikes.
+/// 0.1 → ~2 week half-life, reflects sustained eating patterns.
+public let MaintenanceAlpha = 0.1
+
+/// EWMA alpha for display purposes (recent intake pattern).
+/// Higher value = responsive to recent changes.
+/// 0.25 → ~3 day half-life, shows current eating pattern.
+public let DisplayAlpha = 0.25
+
 /// Minimum data points required for full confidence.
 /// ~2 measurements per week over 4 weeks.
 public let MinWeightDataPoints = 7
@@ -47,6 +62,10 @@ public let MinCalorieDataPoints = 14
 /// Bounds: ~1 kg/week loss (extreme), ~0.5 kg/week gain (realistic).
 public let MaxWeightLossPerWeek = 1.0  // kg/week
 public let MaxWeightGainPerWeek = 0.5  // kg/week
+
+/// Maximum daily budget adjustment from credit (kcal).
+/// Prevents extreme budgets when credit is very positive/negative.
+public let MaxDailyAdjustment = 500.0  // kcal/day
 
 /// Baseline maintenance estimate (kcal/day) used when data is insufficient.
 /// Blended with calculated value based on confidence factor.

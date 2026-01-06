@@ -106,48 +106,42 @@ public struct OverviewComponent: View {
     }
 
     @ViewBuilder var overviewSections: some View {
-        Section("Calories") {
+        Section("Intake") {
             calorieValue(
                 budgetDataService.budgetService?.calories.currentIntake,
-                title: "Intake",
+                title: "Today",
                 icon: Image.calories,
-                subtitle: "today"
+                subtitle: "kcal"
             )
             calorieValue(
                 budgetDataService.budgetService?.calories.smoothedIntake,
-                title: "Average",
+                title: "Recent Average",
                 icon: Image.calories,
-                subtitle: "7d"
+                subtitle: "kcal/day"
+            )
+            calorieValue(
+                budgetDataService.budgetService?.calories.longTermSmoothedIntake,
+                title: "Sustained Average",
+                icon: Image.calories,
+                subtitle: "kcal/day"
             )
         }
 
         Section {
-            calorieValue(
-                budgetDataService.budgetService?.weight.calories.smoothedIntake,
-                title: "Calorie Trend",
-                icon: Image.calories,
-                subtitle: "/day"
-            )
             weightRateValue(
                 budgetDataService.budgetService?.weight.weightSlope,
                 title: "Weight Trend",
                 icon: Image.weight
             )
-            calorieValue(
-                budgetDataService.budgetService?.weight.rawMaintenance,
-                title: "Maintenance",
-                icon: Image.calories,
-                subtitle: "/day"
-            )
             confidenceValue(
                 budgetDataService.budgetService?.weight.confidence,
-                title: "Confidence"
+                title: "Data Confidence"
             )
             calorieValue(
                 budgetDataService.budgetService?.weight.maintenance,
-                title: "Adjusted Maintenance",
+                title: "Maintenance",
                 icon: Image.calories,
-                subtitle: "/day"
+                subtitle: "kcal/day"
             )
         } header: {
             Text("Maintenance")
@@ -155,7 +149,7 @@ public struct OverviewComponent: View {
             if budgetDataService.budgetService?.weight.isValid != true {
                 VStack(alignment: .leading) {
                     Text(
-                        "Track weight and calories for 4 weeks for accurate results. Minimum 7 days of data required."
+                        "Log weight and calories for 2+ weeks to calculate your maintenance. Until then, using 2000 kcal baseline."
                     )
                     HStack(alignment: .firstTextBaseline) {
                         Image.maintenance.foregroundStyle(Color.calories)
@@ -163,39 +157,53 @@ public struct OverviewComponent: View {
                                 .rotate.byLayer,
                                 options: .repeat(.continuous)
                             )
-                        Text("Calibrating...")
+                        Text("Learning...")
                     }
                 }
+            } else {
+                Text(
+                    "Your maintenance is the calories you burn per day. Calculated from your weight trend and intake."
+                )
             }
         }
 
-        Section("Budget") {
-            calorieValue(
-                budgetDataService.budgetService?.remaining,
-                title: "Remaining",
-                icon: Image.calories,
-                subtitle: "today"
-            )
-
+        Section {
             calorieValue(
                 budgetDataService.budgetService?.baseBudget,
                 title: "Base Budget",
                 icon: Image.calories,
-                subtitle: "/day"
+                subtitle: "kcal/day"
             )
-
-            calorieValue(
-                budgetDataService.budgetService?.budget,
-                title: "Budget",
-                icon: Image.calories,
-                subtitle: "/day"
-            )
-
             calorieValue(
                 budgetDataService.budgetService.map { $0.credit },
                 title: "Credit",
                 icon: Image.calories,
-                subtitle: "this week"
+                subtitle: "kcal"
+            )
+            if let service = budgetDataService.budgetService {
+                LabeledContent {
+                    Text("\(service.daysLeft) days")
+                } label: {
+                    Label("Until Week Reset", systemImage: "calendar")
+                }
+            }
+            calorieValue(
+                budgetDataService.budgetService?.dailyAdjustment,
+                title: "Credit Adjustment",
+                icon: Image.calories,
+                subtitle: "kcal/day"
+            )
+            calorieValue(
+                budgetDataService.budgetService?.budget,
+                title: "Budget",
+                icon: Image.calories,
+                subtitle: "kcal"
+            )
+        } header: {
+            Text("Budget")
+        } footer: {
+            Text(
+                "Credit is your over/under from the past 7 days, spread across days until your week resets. Capped at ±500 kcal/day."
             )
         }
     }
