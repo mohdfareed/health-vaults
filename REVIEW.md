@@ -1,28 +1,26 @@
 # HealthVaults Project Review
 
-## iOS 26 Modernization - Session 2
+## Version 1.2.1 - Refinements
 
 ### Latest Fixes (January 2026)
 
-#### Data Refresh Fix
-- **`HealthDataNotifications`**: Simplified to plain `@Observable` class with `@unchecked Sendable`
-- Removed problematic `@MainActor` isolation that conflicted with `@Entry` macro
-- `notifyDataChanged` is now explicitly `@MainActor` for UI thread safety
+#### Credit System Overhaul
+- **Problem**: Credit was always 0 when maintenance wasn't calibrated because both were derived from EWMA
+- **Fix**: Changed from `Credit = Budget - EWMA` to cumulative weekly tracking
+- **New Formula**: `Credit = (Budget × days_elapsed) - actual_intake_this_week`
+- Added `previous()` date helper for finding week start
+- Added `weekIntakes` to BudgetService for actual daily intake tracking
+- Credit now represents real banked/spent calories that map to expected weight change
 
-#### Small Widget Layout
-- **`SmallBudgetLayout`**: Reduced spacing, fixed icon size (50x50), tighter vertical layout
-- Removed nested HStack wrapper, uses VStack with proper spacing
-
-#### MeasurementField Improvements
-- **Input width**: Added `.fixedSize(horizontal: true, vertical: false)` to TextField
-- **Unit picker**: Changed from `Picker` to `Menu` with compact symbol display
-- Shows unit symbol + chevron instead of full formatted value
+#### Background Task Crash Fix
+- **Problem**: BGTaskScheduler runs on background queue, but handler captured `self` causing isolation violation
+- **Fix**: Changed `handleWidgetRefresh` and `scheduleBackgroundRefresh` to static methods
 
 ### Architecture Summary
 - **Data Sources**: HealthKit (external), SwiftData (app-generated)
-- **Key Pattern**: 7-day EWMA calorie budgeting with missing-day interpolation
-- **Core Analytics**: Calorie credit system + 30-day maintenance estimation
-- **Widgets**: Budget and Macros widgets with Liquid Glass backgrounds
+- **Maintenance**: 30-day EWMA + weight regression for TDEE estimation
+- **Credit**: Cumulative weekly (actual vs target), resets each week
+- **Widgets**: Budget and Macros widgets with background delivery
 - **Concurrency**: Swift actors for observer state, `@Observable` for notifications
 
 ### Key Configuration (`Config.swift`)
@@ -33,13 +31,13 @@
 | `WeightRegressionDays` | `30` | Days of data for maintenance estimation |
 | `MinValidDataDays` | `14` | Minimum data for valid estimates |
 
-### Data Flow
+### Credit System Math
 ```
-HealthKit → AppHealthKitObserver (actor)
-         → HealthDataNotifications (@Observable)
-         → Views via .refreshOnHealthDataChange modifier
-         → WidgetCenter.reloadTimelines
+Credit = B × d - Σ(intake from week start to yesterday)
+Adjusted = B + Credit / days_remaining
+Remaining = Adjusted - today's_intake
 ```
+Where B = maintenance + adjustment, d = days elapsed since week start
 
 ### Version
-- App version: 1.1 (build 1)
+- App version: 1.2.1 (in progress)

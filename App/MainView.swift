@@ -4,6 +4,8 @@ import SwiftUI
 
 // TODO: Add haptics and animations
 // TODO: Add welcome screen for new users
+// TODO: Add views to check which data points are taken into account for metrics and budgets
+//       This could be charts, could be lists, could be math summaries
 
 // FIXME: Debug warning:
 // containerToPush is nil, will not push anything to candidate receiver for request token: BF2ABD30

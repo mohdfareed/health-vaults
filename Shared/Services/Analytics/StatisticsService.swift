@@ -125,6 +125,20 @@ extension Date {
         )
     }
 
+    /// Previous weekday occurrence (or today if it matches).
+    /// Returns the most recent date that is the given weekday, including today.
+    func previous(_ weekday: Int, using cal: Calendar) -> Date? {
+        let components = cal.dateComponents(
+            [.year, .month, .day, .weekday], from: self
+        )
+
+        let today = components.weekday!
+        let offset = (today - weekday + 7) % 7
+        return cal.date(
+            byAdding: .day, value: -offset, to: self
+        )?.floored(to: .day, using: cal)
+    }
+
     private func interval(
         of unit: Calendar.Component, using cal: Calendar
     ) -> DateInterval? {

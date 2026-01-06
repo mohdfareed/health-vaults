@@ -41,18 +41,23 @@ Built with SwiftUI and integrated with Apple HealthKit, the app tracks calorie i
 
 #### 1. Calorie Credit System
 
-**EWMA Smoothing**:
-$S_t = \alpha \cdot C_{t-1} + (1 - \alpha) \cdot S_{t-1}$
+**Weekly Credit** (cumulative actual vs. target):
+$\text{Credit}_t = B \cdot d - \sum_{i=1}^{d} C_i$
 
-**Credit Calculation**:
-$\text{Credit}_t = B - S_t$
+Where:
+- $B$ is the base daily budget (maintenance + adjustment)
+- $d$ is days elapsed since week start (not including today)
+- $C_i$ is actual intake on day $i$
 
-**Adjusted Budget**:
+**Adjusted Budget** (distributes credit across remaining days):
 $B'_t = B + \frac{\text{Credit}_t}{D}$
 
-Where $D$ is days remaining in weekly cycle.
+Where $D$ is days remaining in weekly cycle (including today).
 
 #### 2. Maintenance Estimation
+
+**EWMA Smoothing** (30-day window):
+$S_t = \alpha \cdot C_{t-1} + (1 - \alpha) \cdot S_{t-1}$
 
 **Weight Trend** (Linear regression):
 $m = \frac{\sum(i - \bar{i})(w_i - \bar{w})}{\sum(i - \bar{i})^2}$

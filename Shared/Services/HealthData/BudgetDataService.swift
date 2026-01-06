@@ -42,17 +42,27 @@ public final class BudgetDataService: @unchecked Sendable {
         isLoading = true
 
         // Calculate date ranges for data fetching
-        let yesterday = date.adding(-1, .day, using: .autoupdatingCurrent)
+        let cal = Calendar.autoupdatingCurrent
+        let yesterday = date.adding(-1, .day, using: cal)
+        let firstWeekday = Locale.autoupdatingCurrent.calendar.firstWeekday
+        let weekStart = date.previous(firstWeekday, using: cal)
 
-        guard let ewmaRange = yesterday?.dateRange(by: 7, using: .autoupdatingCurrent),
-            let currentRange = date.dateRange(using: .autoupdatingCurrent),
+        guard let ewmaRange = yesterday?.dateRange(by: 7, using: cal),
+            let currentRange = date.dateRange(using: cal),
             let fittingRange = yesterday?.dateRange(
-                by: WeightRegressionDays, using: .autoupdatingCurrent)
+                by: WeightRegressionDays, using: cal),
+            let weekStart = weekStart,
+            let yesterday = yesterday
         else {
             logger.error("Failed to calculate date ranges for budget data")
             isLoading = false
             return
         }
+
+        // Calculate week range (week start to yesterday, for credit)
+        // Only fetch if yesterday >= weekStart (i.e., not first day of week)
+        let weekRangeFrom = weekStart
+        let weekRangeTo = max(weekStart, yesterday.ceiled(to: .day, using: cal) ?? yesterday)
 
         // Fetch data
 
@@ -62,6 +72,19 @@ public final class BudgetDataService: @unchecked Sendable {
             interval: .daily,
             options: .cumulativeSum
         )
+
+        // Fetch week's intake for credit calculation (week start to yesterday)
+        let weekCalorieData: [Date: Double]
+        if yesterday >= weekStart {
+            weekCalorieData = await healthKitService.fetchStatistics(
+                for: .dietaryCalories,
+                from: weekRangeFrom, to: weekRangeTo,
+                interval: .daily,
+                options: .cumulativeSum
+            )
+        } else {
+            weekCalorieData = [:]
+        }
 
         let maintenanceCalorieData = await healthKitService.fetchStatistics(
             for: .dietaryCalories,
@@ -105,8 +128,9 @@ public final class BudgetDataService: @unchecked Sendable {
                 alpha: 0.25  // 7 days
             ),
             weight: weightAnalytics,
+            weekIntakes: weekCalorieData,
             adjustment: adjustment,
-            firstWeekday: Locale.autoupdatingCurrent.calendar.firstWeekday
+            firstWeekday: firstWeekday
         )
 
         await MainActor.run {
