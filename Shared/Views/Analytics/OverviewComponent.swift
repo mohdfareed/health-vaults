@@ -157,7 +157,7 @@ public struct OverviewComponent: View {
                                 .rotate.byLayer,
                                 options: .repeat(.continuous)
                             )
-                        Text("Learning...")
+                        Text("Calibrating...")
                     }
                 }
             } else {
@@ -180,13 +180,10 @@ public struct OverviewComponent: View {
                 icon: Image.calories,
                 subtitle: "kcal"
             )
-            if let service = budgetDataService.budgetService {
-                LabeledContent {
-                    Text("\(service.daysLeft) days")
-                } label: {
-                    Label("Until Week Reset", systemImage: "calendar")
-                }
-            }
+            daysValue(
+                budgetDataService.budgetService.map { Double($0.daysLeft) },
+                title: "Until Week Reset"
+            )
             calorieValue(
                 budgetDataService.budgetService?.dailyAdjustment,
                 title: "Credit Adjustment",
@@ -395,6 +392,29 @@ public struct OverviewComponent: View {
             }
         }
         .disabled(true)
+    }
+
+    /// Days value display (for week reset countdown).
+    private func daysValue(
+        _ value: Double?,
+        title: String.LocalizationValue
+    ) -> some View {
+        LabeledContent {
+            if let value = value {
+                Text("\(Int(value))")
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("—")
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            DetailedRow(image: Image(systemName: "calendar"), tint: .secondary) {
+                Text(String(localized: title))
+            } subtitle: {
+                Text("days").textScale(.secondary)
+            } details: {
+            }
+        }
     }
 
     /// Weight rate value (kg/week) with localized unit display.
