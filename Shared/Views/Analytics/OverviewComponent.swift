@@ -267,20 +267,8 @@ public struct OverviewComponent: View {
             )
 
             macroValue(
-                macrosDataService.macrosService?.baseBudgets?.protein,
-                title: "Base",
-                icon: Image.protein, tint: .protein
-            )
-
-            macroValue(
                 macrosDataService.macrosService?.budgets?.protein,
-                title: "Adjusted",
-                icon: Image.protein, tint: .protein
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.credits?.protein,
-                title: "Credit",
+                title: "Budget",
                 icon: Image.protein, tint: .protein
             )
         }
@@ -309,20 +297,8 @@ public struct OverviewComponent: View {
             )
 
             macroValue(
-                macrosDataService.macrosService?.baseBudgets?.carbs,
-                title: "Base",
-                icon: Image.carbs, tint: .carbs
-            )
-
-            macroValue(
                 macrosDataService.macrosService?.budgets?.carbs,
-                title: "Adjusted",
-                icon: Image.carbs, tint: .carbs
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.credits?.carbs,
-                title: "Credit",
+                title: "Budget",
                 icon: Image.carbs, tint: .carbs
             )
         }
@@ -351,20 +327,8 @@ public struct OverviewComponent: View {
             )
 
             macroValue(
-                macrosDataService.macrosService?.baseBudgets?.fat,
-                title: "Base",
-                icon: Image.fat, tint: .fat
-            )
-
-            macroValue(
                 macrosDataService.macrosService?.budgets?.fat,
-                title: "Adjusted",
-                icon: Image.fat, tint: .fat
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.credits?.fat,
-                title: "Credit",
+                title: "Budget",
                 icon: Image.fat, tint: .fat
             )
         }

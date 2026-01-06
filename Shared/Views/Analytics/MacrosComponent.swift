@@ -190,7 +190,7 @@ private struct MacroBudgetContent: View {
                         .font(.title)
                         .foregroundColor(remaining ?? 0 >= 0 ? .primary : .red)
                         .contentTransition(.numericText(value: remaining ?? 0))
-                    creditContent(format: formatter)
+                    intakeBudgetContent(format: formatter)
                 }
             }
             .padding(4)
@@ -267,43 +267,13 @@ private struct MacroBudgetContent: View {
     }
 
     @ViewBuilder
-    private func creditContent(format: FloatingPointFormatStyle<Double>) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 0) {
-            Image.credit
-                .foregroundColor(credit ?? 0 >= 0 ? .green : .red)
-                .font(.headline)
-                .frame(width: 18, height: 18, alignment: .center)
-                .padding(.trailing, 8)
-
-            if let creditValue = credit {
-                ValueView(
-                    measurement: .init(
-                        baseValue: .constant(creditValue),
-                        definition: UnitDefinition<UnitMass>.macro
-                    ),
-                    icon: nil, tint: nil, format: format
-                )
-                .fontWeight(.bold)
-                .font(.headline)
-                .foregroundColor(.secondary)
-                .contentTransition(.numericText(value: creditValue))
-            } else {
-                Text("--")
-                    .fontWeight(.bold)
-                    .font(.headline)
-                    .foregroundColor(.secondary)
-            }
-        }
-    }
-
-    @ViewBuilder
     private var progressRing: some View {
         ProgressRing(
-            value: baseBudget ?? 0,
+            value: budget ?? 0,
             progress: intake ?? 0,
             threshold: budget ?? 0,
             color: color,
-            thresholdColor: credit ?? 0 >= 0 ? .green : .red,
+            thresholdColor: remaining ?? 0 >= 0 ? .green : .red,
             icon: icon
         )
         .frame(maxWidth: 60)
@@ -332,22 +302,6 @@ private struct MacroBudgetContent: View {
         case .protein: return macros.remaining?.protein
         case .carbs: return macros.remaining?.carbs
         case .fat: return macros.remaining?.fat
-        }
-    }
-
-    private var baseBudget: Double? {
-        switch ring {
-        case .protein: return macros.baseBudgets?.protein
-        case .carbs: return macros.baseBudgets?.carbs
-        case .fat: return macros.baseBudgets?.fat
-        }
-    }
-
-    private var credit: Double? {
-        switch ring {
-        case .protein: return macros.credits?.protein
-        case .carbs: return macros.credits?.carbs
-        case .fat: return macros.credits?.fat
         }
     }
 
