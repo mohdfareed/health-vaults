@@ -1,4 +1,5 @@
 import SwiftUI
+import WidgetKit
 
 // MARK: Locale
 // ============================================================================
@@ -6,8 +7,8 @@ import SwiftUI
 /// A property wrapper to access the app's locale, applying any user settings.
 @MainActor @propertyWrapper
 public struct AppLocale: DynamicProperty {
-    @AppStorage(.unitSystem) private var unitSystem: MeasurementSystem?
-    @AppStorage(.firstDayOfWeek) private var firstDayOfWeek: Weekday?
+    @AppStorage(.unitSystem, store: SharedDefaults) private var unitSystem: MeasurementSystem?
+    @AppStorage(.firstDayOfWeek, store: SharedDefaults) private var firstDayOfWeek: Weekday?
     @Environment(\.locale) private var systemLocale: Locale
 
     public init() {}
@@ -27,7 +28,10 @@ public struct AppLocale: DynamicProperty {
     public var units: Binding<MeasurementSystem?> {
         Binding(
             get: { unitSystem },
-            set: { unitSystem = $0 }
+            set: {
+                unitSystem = $0
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         )
     }
 
@@ -35,7 +39,10 @@ public struct AppLocale: DynamicProperty {
     public var firstWeekDay: Binding<Weekday?> {
         Binding(
             get: { firstDayOfWeek },
-            set: { firstDayOfWeek = $0 }
+            set: {
+                firstDayOfWeek = $0
+                WidgetCenter.shared.reloadAllTimelines()
+            }
         )
     }
 }

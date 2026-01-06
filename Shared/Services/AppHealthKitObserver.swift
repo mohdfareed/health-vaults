@@ -46,7 +46,7 @@ public actor AppHealthKitObserver {
         // Calculate broad date range for all health data (covers all use cases)
         let today = Date()
         let startDate =
-            today.adding(-Int(WeightRegressionDays), .day, using: .autoupdatingCurrent) ?? today
+            today.adding(-Int(RegressionWindowDays), .day, using: .autoupdatingCurrent) ?? today
         let endDate = today.adding(1, .day, using: .autoupdatingCurrent) ?? today
 
         // Observe all HealthKit data types the app uses

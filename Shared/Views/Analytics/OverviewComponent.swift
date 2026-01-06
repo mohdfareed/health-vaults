@@ -115,27 +115,37 @@ public struct OverviewComponent: View {
             )
             calorieValue(
                 budgetDataService.budgetService?.calories.smoothedIntake,
-                title: "EWMA",
+                title: "Average",
                 icon: Image.calories,
-                subtitle: "/day"
+                subtitle: "7d"
             )
         }
 
         Section {
-            weightRateValue(
-                budgetDataService.budgetService?.weight.weightSlope,
-                title: "Weight Change",
-                icon: Image.weight
-            )
             calorieValue(
                 budgetDataService.budgetService?.weight.calories.smoothedIntake,
-                title: "Historical Intake",
+                title: "Calorie Trend",
                 icon: Image.calories,
                 subtitle: "/day"
             )
+            weightRateValue(
+                budgetDataService.budgetService?.weight.weightSlope,
+                title: "Weight Trend",
+                icon: Image.weight
+            )
+            calorieValue(
+                budgetDataService.budgetService?.weight.rawMaintenance,
+                title: "Maintenance",
+                icon: Image.calories,
+                subtitle: "/day"
+            )
+            confidenceValue(
+                budgetDataService.budgetService?.weight.confidence,
+                title: "Confidence"
+            )
             calorieValue(
                 budgetDataService.budgetService?.weight.maintenance,
-                title: "Maintenance",
+                title: "Adjusted Maintenance",
                 icon: Image.calories,
                 subtitle: "/day"
             )
@@ -144,15 +154,17 @@ public struct OverviewComponent: View {
         } footer: {
             if budgetDataService.budgetService?.weight.isValid != true {
                 VStack(alignment: .leading) {
+                    Text(
+                        "Track weight and calories for 4 weeks for accurate results. Minimum 7 days of data required."
+                    )
                     HStack(alignment: .firstTextBaseline) {
                         Image.maintenance.foregroundStyle(Color.calories)
                             .symbolEffect(
                                 .rotate.byLayer,
                                 options: .repeat(.continuous)
                             )
-                        Text("Maintenance calibration in progress...")
+                        Text("Calibrating...")
                     }
-                    Text("At least 14 days of weight and calorie data is required.")
                 }
             }
         }
@@ -167,26 +179,25 @@ public struct OverviewComponent: View {
 
             calorieValue(
                 budgetDataService.budgetService?.baseBudget,
-                title: "Base",
+                title: "Base Budget",
                 icon: Image.calories,
                 subtitle: "/day"
             )
 
             calorieValue(
                 budgetDataService.budgetService?.budget,
-                title: "Adjusted",
+                title: "Budget",
                 icon: Image.calories,
                 subtitle: "/day"
             )
 
             calorieValue(
-                budgetDataService.budgetService?.credit,
+                budgetDataService.budgetService.map { $0.credit },
                 title: "Credit",
                 icon: Image.calories,
                 subtitle: "this week"
             )
         }
-
     }
 
     @ViewBuilder var macrosPage: some View {
@@ -397,6 +408,30 @@ public struct OverviewComponent: View {
             } subtitle: {
                 Text("/wk").textScale(.secondary)
             } details: {
+            }
+        }
+        .disabled(true)
+    }
+
+    /// Confidence percentage display.
+    private func confidenceValue(
+        _ value: Double?,
+        title: String.LocalizationValue
+    ) -> some View {
+        LabeledContent {
+            if let value = value {
+                Text("\(Int(value * 100))%")
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("—")
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            Label {
+                Text(String(localized: title))
+            } icon: {
+                Image(systemName: "percent")
+                    .foregroundStyle(.tertiary)
             }
         }
         .disabled(true)

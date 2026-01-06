@@ -12,8 +12,8 @@ struct SettingsView: View {
     @Environment(\.healthKit)
     internal var healthKit: HealthKitService
 
-    @AppStorage(.userGoals) var goalsID: UUID
-    @AppStorage(.theme) var theme: AppTheme
+    @AppStorage(.userGoals, store: SharedDefaults) var goalsID: UUID
+    @AppStorage(.theme, store: SharedDefaults) var theme: AppTheme
 
     @AppLocale private var locale
     @State private var reset = false
@@ -136,7 +136,7 @@ extension View {
         self.alert("Reset All Settings", isPresented: isPresented) {
             Button("Cancel", role: .cancel) {}
             Button("Reset", role: .destructive) {
-                UserDefaults.standard.resetSettings()
+                SharedDefaults.resetSettings()
             }
         } message: {
             Text(

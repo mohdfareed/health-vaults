@@ -420,6 +420,10 @@
 				CODE_SIGN_ENTITLEMENTS = HealthVaults.xcodeproj/Widgets.entitlements;
 				INFOPLIST_FILE = HealthVaults.xcodeproj/WidgetsInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "HealthVaults Widgets";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Enable the app to read health data from other apps using Apple Health.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Enable the app to share its data with other apps using Apple Health.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -438,6 +442,10 @@
 				CODE_SIGN_ENTITLEMENTS = HealthVaults.xcodeproj/Widgets.entitlements;
 				INFOPLIST_FILE = HealthVaults.xcodeproj/WidgetsInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "HealthVaults Widgets";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Enable the app to read health data from other apps using Apple Health.";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Enable the app to share its data with other apps using Apple Health.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -604,9 +612,10 @@
 				ENABLE_PREVIEWS = "";
 				INFOPLIST_FILE = HealthVaults.xcodeproj/AppInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HealthVaults;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Enable the app to read health data from other apps using Apple Health.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Enable the app to share its data with other apps using Apple Health.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.\n";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
@@ -634,9 +643,10 @@
 				ENABLE_PREVIEWS = "";
 				INFOPLIST_FILE = HealthVaults.xcodeproj/AppInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HealthVaults;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "Enable the app to read health data from other apps using Apple Health.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Enable the app to share its data with other apps using Apple Health.";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.\n";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Enable the app to update health data created by the app in Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";

@@ -11,18 +11,14 @@ struct DashboardView: View {
 
     var body: some View {
         NavigationStack {
-            DashboardWidgets(goals)
+            DashboardWidgets(goals: goals)
                 .navigationTitle("Dashboard")
         }
     }
 }
 
 struct DashboardWidgets: View {
-    private let goals: UserGoals
-
-    init(_ goals: UserGoals) {
-        self.goals = goals
-    }
+    @Bindable var goals: UserGoals
 
     var body: some View {
         List {

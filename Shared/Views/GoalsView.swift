@@ -1,5 +1,6 @@
 import SwiftData
 import SwiftUI
+import WidgetKit
 
 public struct GoalView: View {
     @Environment(\.modelContext) private var context: ModelContext
@@ -18,6 +19,7 @@ public struct GoalView: View {
     private func save() {
         do {
             try context.save()
+            WidgetCenter.shared.reloadAllTimelines()
         } catch {
             AppLogger.new(for: GoalView.self)
                 .error("Failed to save model: \(error)")

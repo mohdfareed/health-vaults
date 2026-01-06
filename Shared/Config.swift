@@ -22,25 +22,25 @@ public let MacrosWidgetID = "MacrosWidget"
 public let ObserversID = "\(AppID).Observers"
 /// App Groups container for shared data between app and widgets.
 public let AppGroupID = "group.\(AppID).shared"
+/// Shared UserDefaults for App Group (used by both app and widgets).
+public nonisolated(unsafe) let SharedDefaults = UserDefaults(suiteName: AppGroupID) ?? .standard
 /// Source repository URL.
 public let RepoURL = "https://github.com/mohdfareed/health-vaults"
 
 // MARK: - Analytics Configuration
 // ============================================================================
 
-/// Number of days for weight regression window (maintenance estimation).
-/// Shorter windows are more responsive to recent trends but less stable.
-public let WeightRegressionDays: UInt = 30
+/// Unified regression window for maintenance estimation (days).
+/// 28 days (4 weeks) is the scientifically recommended minimum for
+/// reliable TDEE estimation via weight tracking.
+public let RegressionWindowDays: UInt = 28
 
-/// Minimum days of weight data for valid regression.
-public let MinWeightSpanDays = 14
-/// Minimum weight measurements for valid regression.
-public let MinWeightDataPoints = 5
-
-/// Minimum days of calorie data for reliable EWMA smoothing.
-public let MinCalorieSpanDays = 7
-/// Minimum calorie measurements for reliable EWMA smoothing.
-public let MinCalorieDataPoints = 4
+/// Minimum data points required for full confidence.
+/// ~2 measurements per week over 4 weeks.
+public let MinWeightDataPoints = 7
+/// Minimum calorie tracking days for full confidence.
+/// ~50% of days in the window should be tracked.
+public let MinCalorieDataPoints = 14
 
 /// Maximum physiological weight change rate (kg/week).
 /// Fat loss is limited by energy deficit; gain by surplus + muscle synthesis.

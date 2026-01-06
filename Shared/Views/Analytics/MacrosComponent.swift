@@ -11,6 +11,7 @@ public struct MacrosComponent: View {
     @State private var macrosDataService: MacrosDataService?
 
     private let preloadedMacrosService: MacrosAnalyticsService?
+    private let adjustment: Double?
     private let macroAdjustments: CalorieMacros?
     private let selectedMacro: MacroType?
     private let date: Date
@@ -24,6 +25,7 @@ public struct MacrosComponent: View {
         preloadedMacrosService: MacrosAnalyticsService? = nil
     ) {
         self.preloadedMacrosService = preloadedMacrosService
+        self.adjustment = adjustment
         self.macroAdjustments = macroAdjustments
         self.selectedMacro = selectedMacro
         self.date = date
@@ -82,6 +84,26 @@ public struct MacrosComponent: View {
             // Only refresh if using data services (not preloaded data)
             if preloadedMacrosService == nil {
                 await refresh()
+            }
+        }
+        .onChange(of: adjustment) { _, newAdjustment in
+            // Recreate data services when adjustment changes
+            if preloadedMacrosService == nil {
+                budgetDataService = BudgetDataService(adjustment: newAdjustment, date: date)
+                Task { await refresh() }
+            }
+        }
+        .onChange(of: macroAdjustments) { _, newMacroAdjustments in
+            // Recreate macros service when macro adjustments change
+            if preloadedMacrosService == nil {
+                if let budgetService = budgetDataService?.budgetService {
+                    macrosDataService = MacrosDataService(
+                        budgetService: budgetService,
+                        adjustments: newMacroAdjustments,
+                        date: date
+                    )
+                }
+                Task { await macrosDataService?.refresh() }
             }
         }
     }
@@ -271,9 +293,9 @@ private struct MacroBudgetContent: View {
         ProgressRing(
             value: budget ?? 0,
             progress: intake ?? 0,
-            threshold: budget ?? 0,
+            threshold: nil,
             color: color,
-            thresholdColor: remaining ?? 0 >= 0 ? .green : .red,
+            thresholdColor: color,
             icon: icon
         )
         .frame(maxWidth: 60)

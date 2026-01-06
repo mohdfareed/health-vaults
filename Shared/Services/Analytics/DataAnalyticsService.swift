@@ -5,19 +5,59 @@ import SwiftUI
 // MARK: - Data Analytics Service
 // ============================================================================
 
-/// Core analytics service implementing EWMA smoothing for calorie data.
+/// Core analytics service implementing EWMA smoothing for intake data.
+/// Used for both calorie tracking (28-day window) and macro tracking (7-day window).
 public struct DataAnalyticsService: Sendable {
-    /// Current day's intake values (kcal).
+    /// Current day's intake values.
     let currentIntakes: [Date: Double]
-    /// Historical daily intake values (kcal).
+    /// Historical daily intake values.
     let intakes: [Date: Double]
     /// EWMA smoothing factor (0.25 = 7-day equivalent).
     let alpha: Double
+    /// Window size for confidence calculation (default: 28 days for calories).
+    let windowDays: Int
+    /// Minimum data points for full confidence (default: 14 for calories).
+    let minDataPoints: Int
+
+    /// Initialize with default parameters for calorie tracking (28-day window).
+    public init(
+        currentIntakes: [Date: Double],
+        intakes: [Date: Double],
+        alpha: Double
+    ) {
+        self.currentIntakes = currentIntakes
+        self.intakes = intakes
+        self.alpha = alpha
+        self.windowDays = Int(RegressionWindowDays)
+        self.minDataPoints = MinCalorieDataPoints
+    }
+
+    /// Initialize with custom window for macro tracking (typically 7-day window).
+    public init(
+        currentIntakes: [Date: Double],
+        intakes: [Date: Double],
+        alpha: Double,
+        windowDays: Int,
+        minDataPoints: Int
+    ) {
+        self.currentIntakes = currentIntakes
+        self.intakes = intakes
+        self.alpha = alpha
+        self.windowDays = windowDays
+        self.minDataPoints = minDataPoints
+    }
 
     /// Daily intake totals grouped by date.
     var dailyIntakes: [Date: Double] {
         return intakes.bucketed(by: .day, using: .autoupdatingCurrent)
             .mapValues { $0.sum() }
+    }
+
+    /// Intakes within the configured window.
+    private var windowIntakes: [Date: Double] {
+        let cal = Calendar.autoupdatingCurrent
+        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
+        return dailyIntakes.filter { $0.key >= cutoff }
     }
 
     /// Daily intakes with missing days filled using the average of existing values.
@@ -60,30 +100,30 @@ public struct DataAnalyticsService: Sendable {
         return (from: min, to: max)
     }
 
-    /// Number of distinct daily intake measurements.
+    /// Number of distinct daily intake measurements in the window.
     public var dataPointCount: Int {
-        dailyIntakes.count
+        windowIntakes.count
     }
 
-    /// Data span in days between first and last intake measurement.
-    public var dataSpanDays: Int {
-        guard let range = intakeDateRange else { return 0 }
-        return range.from.distance(
-            to: range.to, in: .day, using: .autoupdatingCurrent
-        ) ?? 0
+    /// Span of calorie data in days within the window.
+    private var dataSpanDays: Double {
+        let sorted = windowIntakes.keys.sorted()
+        guard let min = sorted.first, let max = sorted.last else { return 0 }
+        return max.timeIntervalSince(min) / 86_400
     }
 
-    /// Confidence factor (0-1) based on calorie data quality.
-    /// Low confidence indicates EWMA hasn't converged yet.
+    /// Confidence factor (0-1) based on data quality within the window.
+    /// Considers both density (points/minPoints) and span (span/windowDays).
     public var confidence: Double {
-        let pointConfidence = min(1.0, Double(dataPointCount) / Double(MinCalorieDataPoints))
-        let spanConfidence = min(1.0, Double(dataSpanDays) / Double(MinCalorieSpanDays))
-        return pointConfidence * spanConfidence
+        let densityFactor = min(1.0, Double(dataPointCount) / Double(minDataPoints))
+        let spanFactor = min(1.0, dataSpanDays / Double(windowDays))
+        return densityFactor * spanFactor
     }
 
-    /// Whether calorie data has sufficient history for reliable smoothing.
+    /// Whether data has sufficient history for reliable smoothing.
     public var isValid: Bool {
-        return dataPointCount >= MinCalorieDataPoints && dataSpanDays >= MinCalorieSpanDays
+        return dataPointCount >= minDataPoints
+            && dataSpanDays >= Double(windowDays) * 0.5
     }
 
     /// EWMA-smoothed intake: S_t = α·C_{t-1} + (1-α)·S_{t-1}.

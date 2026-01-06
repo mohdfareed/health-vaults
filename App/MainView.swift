@@ -14,9 +14,9 @@ import SwiftUI
 // void * _Nullable NSMapGet(NSMapTable * _Nonnull, const void * _Nullable): map table argument is NULL
 
 struct AppView: View {
-    @AppStorage(.theme)
+    @AppStorage(.theme, store: SharedDefaults)
     private var theme: AppTheme
-    @AppStorage(.userGoals)
+    @AppStorage(.userGoals, store: SharedDefaults)
     private var goalsID: UUID
 
     @Environment(\.colorScheme)
@@ -51,7 +51,8 @@ struct AppView: View {
 
         .contentTransition(.symbolEffect(.replace))
         .contentTransition(.numericText())
-        .contentTransition(.opacity).onAppear {
+        .contentTransition(.opacity)
+        .onAppear {
             healthKitService.requestAuthorization()
         }
 

@@ -18,11 +18,8 @@ public struct BudgetService: Sendable {
     public let adjustment: Double?
     /// First day of weekly budget cycle (1=Sunday, 2=Monday, etc.).
     public let firstWeekday: Int
-
-    /// The current date for calculations.
-    private var currentDate: Date {
-        calories.currentIntakeDateRange?.from ?? Date()
-    }
+    /// The reference date for calculations (typically today).
+    public let currentDate: Date
 
     /// Start of the current week based on firstWeekday setting.
     private var weekStart: Date? {
@@ -59,10 +56,7 @@ public struct BudgetService: Sendable {
 
     /// Weekly calorie credit: C = (B × days_elapsed) - actual_intake (kcal).
     /// Positive indicates under-budget (banked calories), negative indicates over-budget (debt).
-    /// Returns nil when maintenance isn't fully calibrated (credit system disabled).
-    public var credit: Double? {
-        guard weight.isValid else { return nil }
-
+    public var credit: Double {
         // If no days have elapsed yet (today is first day of week), credit is 0
         guard daysElapsed > 0 else { return 0 }
 
@@ -75,9 +69,7 @@ public struct BudgetService: Sendable {
 
     /// Adjusted daily budget: B' = B + C/D (kcal).
     /// Distributes weekly credit across remaining days in cycle.
-    /// Falls back to baseBudget when credit system is disabled (insufficient data).
     public var budget: Double {
-        guard let credit = credit else { return baseBudget }
         return baseBudget + (credit / Double(daysLeft))
     }
 

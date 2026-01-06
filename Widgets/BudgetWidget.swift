@@ -56,7 +56,7 @@ struct BudgetWidgetEntryView: View {
 // ============================================================================
 
 struct BudgetTimelineProvider: AppIntentTimelineProvider {
-    @AppStorage(.userGoals) private var goalsID: UUID
+    @AppStorage(.userGoals, store: SharedDefaults) private var goalsID: UUID
 
     func placeholder(in context: Context) -> BudgetEntry {
         BudgetEntry(date: Date(), budgetService: nil, configuration: ConfigurationAppIntent())
@@ -85,9 +85,6 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
     private func generateEntry(for date: Date, configuration: ConfigurationAppIntent) async
         -> BudgetEntry
     {
-        // Ensure HealthKit observer is running in widget process
-        await AppHealthKitObserver.shared.startObserving()
-
         // Get current adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals(for: goalsID)
 

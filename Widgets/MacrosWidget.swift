@@ -59,7 +59,7 @@ struct MacrosWidgetEntryView: View {
 // ============================================================================
 
 struct MacrosTimelineProvider: AppIntentTimelineProvider {
-    @AppStorage(.userGoals) private var goalsID: UUID
+    @AppStorage(.userGoals, store: SharedDefaults) private var goalsID: UUID
 
     func placeholder(in context: Context) -> MacrosEntry {
         return MacrosEntry(
@@ -89,9 +89,6 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
     private func generateEntry(for date: Date, configuration: MacroSelectionAppIntent) async
         -> MacrosEntry
     {
-        // Ensure HealthKit observer is running in widget process
-        await AppHealthKitObserver.shared.startObserving()
-
         // Get current macros and adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals(for: goalsID)
 

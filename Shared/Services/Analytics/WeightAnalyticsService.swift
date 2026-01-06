@@ -8,6 +8,16 @@ import WidgetKit
 
 /// Weight analytics service for maintenance calorie estimation.
 /// Implements linear regression on weight trends to estimate energy balance.
+///
+/// ## Algorithm
+/// Uses a unified 28-day window for both regression and confidence:
+/// 1. Linear regression on weight data within the window → raw slope
+/// 2. Raw maintenance = EWMA(intake) - (slope × ρ / 7)
+/// 3. Confidence = (points/minPoints) × (span/windowDays)
+/// 4. Final maintenance = raw × confidence + baseline × (1 - confidence)
+///
+/// Only the final maintenance is blended toward baseline; the slope is
+/// clamped for safety but not damped, preserving the true trend signal.
 public struct WeightAnalyticsService: Sendable {
     let calories: DataAnalyticsService
 
@@ -23,85 +33,81 @@ public struct WeightAnalyticsService: Sendable {
             .filter { !$0.value.isNaN }
     }
 
-    /// The date range for weight data.
+    /// Weights within the regression window (last 28 days).
+    private var windowWeights: [Date: Double] {
+        let cal = Calendar.autoupdatingCurrent
+        let cutoff = Date().adding(-Int(RegressionWindowDays), .day, using: cal) ?? Date()
+        return dailyWeights.filter { $0.key >= cutoff }
+    }
+
+    /// The date range for weight data within the window.
     var weightDateRange: (from: Date, to: Date)? {
-        let max = dailyWeights.keys.sorted().max()
-        let min = dailyWeights.keys.sorted().min()
-        guard let max: Date = max, let min: Date = min else { return nil }
+        let sorted = windowWeights.keys.sorted()
+        guard let min = sorted.first, let max = sorted.last else { return nil }
         return (from: min, to: max)
     }
 
-    /// Number of distinct daily weight measurements.
+    /// Number of distinct daily weight measurements in the window.
     var dataPointCount: Int {
-        dailyWeights.count
+        windowWeights.count
     }
 
-    /// Data span in days between first and last measurement.
-    var dataSpanDays: Int {
+    /// Span of data in days within the window.
+    private var dataSpanDays: Double {
         guard let range = weightDateRange else { return 0 }
-        return range.from.distance(
-            to: range.to, in: .day, using: .autoupdatingCurrent
-        ) ?? 0
+        return range.to.timeIntervalSince(range.from) / 86_400
     }
 
-    /// Confidence factor (0-1) based on data quality.
-    /// Combines data point density and time span requirements.
-    /// Low confidence dampens the slope estimate toward zero.
+    /// Confidence factor (0-1) based on data quality within the window.
+    /// Considers both density (points/minPoints) and span (span/windowDays).
+    /// Formula: confidence = densityFactor × spanFactor
     public var confidence: Double {
-        let pointConfidence = min(1.0, Double(dataPointCount) / Double(MinWeightDataPoints))
-        let spanConfidence = min(1.0, Double(dataSpanDays) / Double(MinWeightSpanDays))
-        return pointConfidence * spanConfidence
+        let densityFactor = min(1.0, Double(dataPointCount) / Double(MinWeightDataPoints))
+        let spanFactor = min(1.0, dataSpanDays / Double(RegressionWindowDays))
+        return densityFactor * spanFactor
     }
 
-    /// Daily energy imbalance ΔE = m * rho (kcal/week)
-    var energyImbalance: Double {
-        return weightSlope * rho
-    }
-
-    /// Estimated weight-change rate m (kg/week), confidence-blended and clamped.
-    /// With insufficient data, blends toward 0 kg/week baseline.
-    /// Clamped to physiological bounds to prevent absurd values.
+    /// Estimated weight-change rate (kg/week), clamped to physiological bounds.
+    /// NOT damped by confidence - we want the true measured trend.
     public var weightSlope: Double {
-        let rawSlope = computeSlope * 7  // kg/week
-        // Blend toward 0 baseline: slope = raw * confidence + 0 * (1 - confidence)
-        let blendedSlope = rawSlope * confidence
-        // Clamp to physiological bounds
-        return blendedSlope.clamped(to: -MaxWeightLossPerWeek...MaxWeightGainPerWeek)
+        return rawWeightSlope.clamped(to: -MaxWeightLossPerWeek...MaxWeightGainPerWeek)
     }
 
-    /// Raw (undamped, unclamped) weight slope for diagnostics (kg/week).
+    /// Raw weight slope from linear regression (kg/week).
     public var rawWeightSlope: Double {
         return computeSlope * 7
     }
 
-    /// Maintenance estimate M (kcal/day), confidence-blended toward baseline.
-    /// With insufficient data, blends toward BaselineMaintenance (2000 kcal/day).
-    /// Always returns a value (never nil) for usable budgets.
-    public var maintenance: Double {
-        let rawMaintenance: Double
-        if let smoothed = calories.smoothedIntake {
-            rawMaintenance = smoothed - (energyImbalance / 7.0)
-        } else {
-            rawMaintenance = BaselineMaintenance
+    /// Raw maintenance estimate before confidence blending (kcal/day).
+    public var rawMaintenance: Double {
+        guard let smoothed = calories.smoothedIntake else {
+            return BaselineMaintenance
         }
-        // Blend toward baseline: M = raw * confidence + baseline * (1 - confidence)
+        // M = intake - (slope × ρ / 7)
+        // Use clamped slope to prevent physiologically impossible values
+        let energyImbalance = weightSlope * rho / 7.0
+        return smoothed - energyImbalance
+    }
+
+    /// Maintenance estimate (kcal/day), confidence-blended toward baseline.
+    /// Only the final output is blended, not intermediate values.
+    /// Formula: M = raw × confidence + baseline × (1 - confidence)
+    public var maintenance: Double {
         return rawMaintenance * confidence + BaselineMaintenance * (1 - confidence)
     }
 
-    /// Whether the maintenance estimate has enough data to be valid.
-    /// Requires valid data from BOTH weight and calorie sources.
+    /// Whether the maintenance estimate has enough data to be considered valid.
+    /// Requires sufficient data from BOTH weight and calorie sources.
     public var isValid: Bool {
-        guard weightDateRange != nil else { return false }
-        let weightValid = dataPointCount >= MinWeightDataPoints && dataSpanDays >= MinWeightSpanDays
-        return weightValid && calories.isValid
+        return dataPointCount >= MinWeightDataPoints
+            && dataSpanDays >= Double(RegressionWindowDays) * 0.5
+            && calories.isValid
     }
 
-    /// Computes the slope (Δy/Δx) of time-series data using least-squares linear regression.
-    /// Uses RAW weights (not EWMA) - linear regression already handles noise.
-    /// - Returns: the slope in units per day (e.g., kg/day)
+    /// Computes the slope (kg/day) using least-squares linear regression
+    /// on data within the regression window.
     private var computeSlope: Double {
-        // Use raw daily weights for accurate slope
-        let sorted = dailyWeights.sorted { $0.key < $1.key }
+        let sorted = windowWeights.sorted { $0.key < $1.key }
         guard sorted.count > 1 else { return 0 }
 
         // Convert to (t, w) arrays where t is days since first measurement

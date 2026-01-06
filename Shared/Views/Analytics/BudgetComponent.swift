@@ -14,12 +14,18 @@ public struct BudgetComponent: View {
     private let preloadedBudgetService: BudgetService?
     private let logger = AppLogger.new(for: BudgetComponent.self)
 
+    // Store parameters for recreating service on changes
+    private let adjustment: Double?
+    private let date: Date
+
     public init(
         adjustment: Double? = nil,
         date: Date = Date(),
         preloadedBudgetService: BudgetService? = nil
     ) {
         self.preloadedBudgetService = preloadedBudgetService
+        self.adjustment = adjustment
+        self.date = date
 
         // Only create data service if no preloaded data is provided
         if preloadedBudgetService == nil {
@@ -66,6 +72,13 @@ public struct BudgetComponent: View {
             // Only refresh if using data service (not preloaded widget data)
             if preloadedBudgetService == nil {
                 await dataService?.refresh()
+            }
+        }
+        .onChange(of: adjustment) { _, newAdjustment in
+            // Recreate data service when adjustment changes
+            if preloadedBudgetService == nil {
+                dataService = BudgetDataService(adjustment: newAdjustment, date: date)
+                Task { await dataService?.refresh() }
             }
         }
     }
@@ -115,7 +128,7 @@ private struct MediumBudgetLayout: View {
                 progress: budget.calories.currentIntake ?? 0,
                 threshold: budget.budget,
                 color: .calories,
-                thresholdColor: budget.credit ?? 0 >= 0 ? .green : .red,
+                thresholdColor: budget.credit >= 0 ? .green : .red,
                 icon: Image.calories
             )
             .frame(maxWidth: 80)
@@ -136,7 +149,7 @@ private struct SmallBudgetLayout: View {
                     progress: budget.calories.currentIntake ?? 0,
                     threshold: budget.budget,
                     color: .calories,
-                    thresholdColor: budget.credit ?? 0 >= 0 ? .green : .red,
+                    thresholdColor: budget.credit >= 0 ? .green : .red,
                     icon: Image.calories
                 )
                 .frame(width: 50, height: 50)
@@ -232,27 +245,21 @@ private func CreditContent(data: BudgetService) -> some View {
     let formatter = CalorieFieldDefinition().formatter
     HStack(alignment: .firstTextBaseline, spacing: 0) {
         Image.credit
-            .foregroundColor(data.credit ?? 0 >= 0 ? .green : .red)
+            .foregroundColor(data.credit >= 0 ? .green : .red)
             .font(.headline)
             .frame(width: 18, height: 18, alignment: .center)
             .padding(.trailing, 8)
 
-        if let credit = data.credit {
-            ValueView(
-                measurement: .init(
-                    baseValue: .constant(credit),
-                    definition: UnitDefinition<UnitEnergy>.calorie
-                ),
-                icon: nil, tint: nil, format: formatter
-            )
-            .fontWeight(.bold)
-            .font(.headline)
-            .foregroundColor(.secondary)
-            .contentTransition(.numericText(value: credit))
-        } else {
-            Text("No data available")
-                .fontWeight(.bold)
-                .foregroundColor(.secondary)
-        }
+        ValueView(
+            measurement: .init(
+                baseValue: .constant(data.credit),
+                definition: UnitDefinition<UnitEnergy>.calorie
+            ),
+            icon: nil, tint: nil, format: formatter
+        )
+        .fontWeight(.bold)
+        .font(.headline)
+        .foregroundColor(.secondary)
+        .contentTransition(.numericText(value: data.credit))
     }
 }

@@ -43,14 +43,23 @@ public final class BudgetDataService: @unchecked Sendable {
 
         // Calculate date ranges for data fetching
         let cal = Calendar.autoupdatingCurrent
-        let yesterday = date.adding(-1, .day, using: cal)
-        let firstWeekday = Locale.autoupdatingCurrent.calendar.firstWeekday
-        let weekStart = date.previous(firstWeekday, using: cal)
+        let today = date.floored(to: .day, using: cal) ?? date
+        let yesterday = today.adding(-1, .day, using: cal)
+
+        // Read user's first day of week setting, convert to Calendar weekday int (1-7, Sunday=1)
+        let storedWeekday: Weekday? = SharedDefaults.rawRepresentable(for: .firstDayOfWeek)
+        let firstWeekday: Int
+        if let weekday = storedWeekday {
+            firstWeekday = weekday.calendarValue
+        } else {
+            firstWeekday = cal.firstWeekday  // Use system calendar default
+        }
+        let weekStart = today.previous(firstWeekday, using: cal)
 
         guard let ewmaRange = yesterday?.dateRange(by: 7, using: cal),
-            let currentRange = date.dateRange(using: cal),
+            let currentRange = today.dateRange(using: cal),
             let fittingRange = yesterday?.dateRange(
-                by: WeightRegressionDays, using: cal),
+                by: RegressionWindowDays, using: cal),
             let weekStart = weekStart,
             let yesterday = yesterday
         else {
@@ -129,7 +138,8 @@ public final class BudgetDataService: @unchecked Sendable {
             weight: weightAnalytics,
             weekIntakes: weekCalorieData,
             adjustment: adjustment,
-            firstWeekday: firstWeekday
+            firstWeekday: firstWeekday,
+            currentDate: today
         )
 
         await MainActor.run {
@@ -147,7 +157,7 @@ public final class BudgetDataService: @unchecked Sendable {
         let yesterday = date.adding(-1, .day, using: .autoupdatingCurrent)
         guard let currentRange = date.dateRange(using: .autoupdatingCurrent),
             let fittingRange = yesterday?.dateRange(
-                by: WeightRegressionDays, using: .autoupdatingCurrent)
+                by: RegressionWindowDays, using: .autoupdatingCurrent)
         else {
             logger.error("Failed to calculate date ranges for observation")
             return
