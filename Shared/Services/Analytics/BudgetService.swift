@@ -52,18 +52,16 @@ public struct BudgetService: Sendable {
 
     /// Base daily budget: B = M + A (kcal).
     /// Uses maintenance estimate plus user adjustment.
-    public var baseBudget: Double? {
-        guard let weight = weight.maintenance else { return adjustment }
-        guard let adjustment = adjustment else { return weight }
-        return weight + adjustment
+    public var baseBudget: Double {
+        guard let adjustment = adjustment else { return weight.maintenance }
+        return weight.maintenance + adjustment
     }
 
     /// Weekly calorie credit: C = (B × days_elapsed) - actual_intake (kcal).
     /// Positive indicates under-budget (banked calories), negative indicates over-budget (debt).
-    /// Returns nil when maintenance isn't calibrated.
+    /// Returns nil when maintenance isn't fully calibrated (credit system disabled).
     public var credit: Double? {
         guard weight.isValid else { return nil }
-        guard let baseBudget = baseBudget else { return nil }
 
         // If no days have elapsed yet (today is first day of week), credit is 0
         guard daysElapsed > 0 else { return 0 }
@@ -77,24 +75,26 @@ public struct BudgetService: Sendable {
 
     /// Adjusted daily budget: B' = B + C/D (kcal).
     /// Distributes weekly credit across remaining days in cycle.
-    public var budget: Double? {
-        guard let baseBudget = baseBudget else { return nil }
+    /// Falls back to baseBudget when credit system is disabled (insufficient data).
+    public var budget: Double {
         guard let credit = credit else { return baseBudget }
         return baseBudget + (credit / Double(daysLeft))
     }
 
     /// Remaining budget for today: R = B' - I (kcal).
-    public var remaining: Double? {
-        guard let budget = budget else { return nil }
+    public var remaining: Double {
         return budget - (calories.currentIntake ?? 0)
     }
 
-    /// Whether maintenance estimate has sufficient data (≥1 week).
-    public var isValid: Bool {
-        guard let range = calories.intakeDateRange else { return false }
+    /// Unified confidence factor (0-1) combining weight and calorie data quality.
+    /// Budget estimates are only as reliable as the weakest data source.
+    public var confidence: Double {
+        return min(weight.confidence, calories.confidence)
+    }
 
-        return range.from.distance(
-            to: range.to, in: .weekOfYear, using: .autoupdatingCurrent
-        ) ?? 0 >= 1
+    /// Whether budget calculations have sufficient data from both sources.
+    /// Requires valid weight data (for maintenance) AND valid calorie data (for smoothing).
+    public var isValid: Bool {
+        return weight.isValid && calories.isValid
     }
 }

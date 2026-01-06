@@ -60,6 +60,32 @@ public struct DataAnalyticsService: Sendable {
         return (from: min, to: max)
     }
 
+    /// Number of distinct daily intake measurements.
+    public var dataPointCount: Int {
+        dailyIntakes.count
+    }
+
+    /// Data span in days between first and last intake measurement.
+    public var dataSpanDays: Int {
+        guard let range = intakeDateRange else { return 0 }
+        return range.from.distance(
+            to: range.to, in: .day, using: .autoupdatingCurrent
+        ) ?? 0
+    }
+
+    /// Confidence factor (0-1) based on calorie data quality.
+    /// Low confidence indicates EWMA hasn't converged yet.
+    public var confidence: Double {
+        let pointConfidence = min(1.0, Double(dataPointCount) / Double(MinCalorieDataPoints))
+        let spanConfidence = min(1.0, Double(dataSpanDays) / Double(MinCalorieSpanDays))
+        return pointConfidence * spanConfidence
+    }
+
+    /// Whether calorie data has sufficient history for reliable smoothing.
+    public var isValid: Bool {
+        return dataPointCount >= MinCalorieDataPoints && dataSpanDays >= MinCalorieSpanDays
+    }
+
     /// EWMA-smoothed intake: S_t = α·C_{t-1} + (1-α)·S_{t-1}.
     /// Uses average for missing days to prevent data gaps from skewing results.
     public var smoothedIntake: Double? {

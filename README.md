@@ -35,7 +35,21 @@ Built with SwiftUI and integrated with Apple HealthKit, the app tracks calorie i
 | EWMA α         | 0.25         | 7-day smoothing factor            |
 | Energy/Weight  | 7700 kcal/kg | Conservative energy equivalent    |
 | Weight Window  | 30 days      | Regression period for maintenance |
-| Min Valid Data | 14 days      | Required for stable estimates     |
+
+### Data Validation
+
+Estimates require minimum data to prevent unreliable calculations from sparse inputs.
+
+| Data Source | Min Points | Min Span | Baseline | Effect |
+|-------------|------------|----------|----------|--------|
+| Weight      | 5          | 14 days  | 0 kg/wk  | Slope blended toward baseline, clamped to ±1 kg/wk |
+| Calories    | 4          | 7 days   | 2000 kcal/day | Maintenance blended toward baseline |
+
+**Confidence factor** (0–1): `(points / minPoints) × (days / minSpan)`
+
+**Blending formula**: `value = raw × confidence + baseline × (1 - confidence)`
+
+With sparse data, estimates smoothly converge to sensible defaults rather than producing nil or erratic values.
 
 ### Core Algorithms
 

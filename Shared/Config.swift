@@ -32,8 +32,25 @@ public let RepoURL = "https://github.com/mohdfareed/health-vaults"
 /// Shorter windows are more responsive to recent trends but less stable.
 public let WeightRegressionDays: UInt = 30
 
-/// Minimum number of days of data required for valid maintenance estimates.
-public let MinValidDataDays = 14
+/// Minimum days of weight data for valid regression.
+public let MinWeightSpanDays = 14
+/// Minimum weight measurements for valid regression.
+public let MinWeightDataPoints = 5
+
+/// Minimum days of calorie data for reliable EWMA smoothing.
+public let MinCalorieSpanDays = 7
+/// Minimum calorie measurements for reliable EWMA smoothing.
+public let MinCalorieDataPoints = 4
+
+/// Maximum physiological weight change rate (kg/week).
+/// Fat loss is limited by energy deficit; gain by surplus + muscle synthesis.
+/// Bounds: ~1 kg/week loss (extreme), ~0.5 kg/week gain (realistic).
+public let MaxWeightLossPerWeek = 1.0  // kg/week
+public let MaxWeightGainPerWeek = 0.5  // kg/week
+
+/// Baseline maintenance estimate (kcal/day) used when data is insufficient.
+/// Blended with calculated value based on confidence factor.
+public let BaselineMaintenance = 2000.0  // kcal/day
 
 // MARK: - SwiftData Schema
 // ============================================================================

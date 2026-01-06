@@ -60,6 +60,11 @@ extension Double {
     static func / (lhs: Double, rhs: Int) -> Double {
         return lhs / Double(rhs)
     }
+
+    /// Clamp the value to a given range.
+    func clamped(to range: ClosedRange<Double>) -> Double {
+        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
+    }
 }
 extension Int {
     static func / (lhs: Int, rhs: Double) -> Double {

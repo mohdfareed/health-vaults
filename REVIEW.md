@@ -12,6 +12,31 @@
 **Root Cause**: EWMA was applied to weight series BEFORE linear regression, dampening recent changes.
 **Solution**: Use raw weights for linear regression (regression already handles noise).
 
+### 3. Weight Analytics Edge Cases - FIXED
+**Problem**: With only 2 data points over 2 days (0.5kg difference), maintenance calculated as -869 kcal.
+**Root Cause**: Linear regression with sparse data is unreliable; day-to-day fluctuations dominate.
+**Solution**: Unified confidence system across all analytics services:
+
+**Confidence Application:**
+| Service | Confidence Effect |
+|---------|-------------------|
+| `WeightAnalyticsService.weightSlope` | Blended toward 0 kg/wk baseline, then clamped |
+| `WeightAnalyticsService.maintenance` | Blended toward 2000 kcal/day baseline |
+| `BudgetService.credit` | Gated: returns nil if `weight.isValid` is false |
+
+**Blending formula:** `value = raw × confidence + baseline × (1 - confidence)`
+
+**Config Constants:**
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `MinWeightSpanDays` | 14 | Weight data span for valid regression |
+| `MinWeightDataPoints` | 5 | Weight measurements for valid regression |
+| `MinCalorieSpanDays` | 7 | Calorie data span for valid EWMA |
+| `MinCalorieDataPoints` | 4 | Calorie measurements for valid EWMA |
+| `MaxWeightLossPerWeek` | 1.0 kg | Physiological clamp |
+| `MaxWeightGainPerWeek` | 0.5 kg | Physiological clamp |
+| `BaselineMaintenance` | 2000 kcal | Default when data insufficient |
+
 ### EWMA Usage Guidelines
 | Data | Use EWMA? | Reason |
 |------|-----------|--------|

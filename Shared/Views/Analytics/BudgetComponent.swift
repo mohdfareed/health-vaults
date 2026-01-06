@@ -111,9 +111,9 @@ private struct MediumBudgetLayout: View {
             }
             Spacer()
             ProgressRing(
-                value: budget.baseBudget ?? 0,
+                value: budget.baseBudget,
                 progress: budget.calories.currentIntake ?? 0,
-                threshold: budget.budget ?? 0,
+                threshold: budget.budget,
                 color: .calories,
                 thresholdColor: budget.credit ?? 0 >= 0 ? .green : .red,
                 icon: Image.calories
@@ -132,9 +132,9 @@ private struct SmallBudgetLayout: View {
             HStack {
                 Spacer()
                 ProgressRing(
-                    value: budget.baseBudget ?? 0,
+                    value: budget.baseBudget,
                     progress: budget.calories.currentIntake ?? 0,
-                    threshold: budget.budget ?? 0,
+                    threshold: budget.budget,
                     color: .calories,
                     thresholdColor: budget.credit ?? 0 >= 0 ? .green : .red,
                     icon: Image.calories
@@ -145,11 +145,11 @@ private struct SmallBudgetLayout: View {
             Spacer(minLength: 0)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(budget.remaining ?? 0, format: CalorieFieldDefinition().formatter)
+                Text(budget.remaining, format: CalorieFieldDefinition().formatter)
                     .fontWeight(.bold)
                     .font(.title)
-                    .foregroundColor(budget.remaining ?? 0 >= 0 ? .primary : .red)
-                    .contentTransition(.numericText(value: budget.remaining ?? 0))
+                    .foregroundColor(budget.remaining >= 0 ? .primary : .red)
+                    .contentTransition(.numericText(value: budget.remaining))
                 CreditContent(data: budget)
             }
         }
@@ -170,8 +170,8 @@ private func CalorieContent(data: BudgetService) -> some View {
         )
         .fontWeight(.bold)
         .font(.title)
-        .foregroundColor(data.remaining ?? 0 >= 0 ? .primary : .red)
-        .contentTransition(.numericText(value: data.remaining ?? 0))
+        .foregroundColor(data.remaining >= 0 ? .primary : .red)
+        .contentTransition(.numericText(value: data.remaining))
     }
 }
 
@@ -223,7 +223,7 @@ private func BudgetContent(data: BudgetService, isWidget: Bool = false) -> some 
         .fontWeight(.bold)
         .font(.headline)
         .foregroundColor(.secondary)
-        .contentTransition(.numericText(value: data.budget ?? 0))
+        .contentTransition(.numericText(value: data.budget))
     }
 }
 

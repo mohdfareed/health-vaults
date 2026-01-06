@@ -110,30 +110,34 @@ public struct OverviewComponent: View {
             calorieValue(
                 budgetDataService.budgetService?.calories.currentIntake,
                 title: "Intake",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "today"
             )
             calorieValue(
                 budgetDataService.budgetService?.calories.smoothedIntake,
                 title: "EWMA",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "/day"
             )
         }
 
         Section {
-            weightValue(
+            weightRateValue(
                 budgetDataService.budgetService?.weight.weightSlope,
-                title: "Change",
+                title: "Weight Change",
                 icon: Image.weight
             )
             calorieValue(
                 budgetDataService.budgetService?.weight.calories.smoothedIntake,
                 title: "Historical Intake",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "/day"
             )
             calorieValue(
                 budgetDataService.budgetService?.weight.maintenance,
                 title: "Maintenance",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "/day"
             )
         } header: {
             Text("Maintenance")
@@ -157,25 +161,29 @@ public struct OverviewComponent: View {
             calorieValue(
                 budgetDataService.budgetService?.remaining,
                 title: "Remaining",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "today"
             )
 
             calorieValue(
                 budgetDataService.budgetService?.baseBudget,
                 title: "Base",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "/day"
             )
 
             calorieValue(
                 budgetDataService.budgetService?.budget,
                 title: "Adjusted",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "/day"
             )
 
             calorieValue(
                 budgetDataService.budgetService?.credit,
                 title: "Credit",
-                icon: Image.calories
+                icon: Image.calories,
+                subtitle: "this week"
             )
         }
 
@@ -249,13 +257,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.protein.currentIntake,
                 title: "Intake",
-                icon: Image.protein, tint: .protein
+                icon: Image.protein, tint: .protein,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.protein.smoothedIntake,
                 title: "EWMA",
-                icon: Image.protein, tint: .protein
+                icon: Image.protein, tint: .protein,
+                subtitle: "/day"
             )
         }
 
@@ -263,13 +273,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.remaining?.protein,
                 title: "Remaining",
-                icon: Image.protein, tint: .protein
+                icon: Image.protein, tint: .protein,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.budgets?.protein,
                 title: "Budget",
-                icon: Image.protein, tint: .protein
+                icon: Image.protein, tint: .protein,
+                subtitle: "/day"
             )
         }
     }
@@ -279,13 +291,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.carbs.currentIntake,
                 title: "Intake",
-                icon: Image.carbs, tint: .carbs
+                icon: Image.carbs, tint: .carbs,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.carbs.smoothedIntake,
                 title: "EWMA",
-                icon: Image.carbs, tint: .carbs
+                icon: Image.carbs, tint: .carbs,
+                subtitle: "/day"
             )
         }
 
@@ -293,13 +307,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.remaining?.carbs,
                 title: "Remaining",
-                icon: Image.carbs, tint: .carbs
+                icon: Image.carbs, tint: .carbs,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.budgets?.carbs,
                 title: "Budget",
-                icon: Image.carbs, tint: .carbs
+                icon: Image.carbs, tint: .carbs,
+                subtitle: "/day"
             )
         }
     }
@@ -309,13 +325,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.fat.currentIntake,
                 title: "Intake",
-                icon: Image.fat, tint: .fat
+                icon: Image.fat, tint: .fat,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.fat.smoothedIntake,
                 title: "EWMA",
-                icon: Image.fat, tint: .fat
+                icon: Image.fat, tint: .fat,
+                subtitle: "/day"
             )
         }
 
@@ -323,13 +341,15 @@ public struct OverviewComponent: View {
             macroValue(
                 macrosDataService.macrosService?.remaining?.fat,
                 title: "Remaining",
-                icon: Image.fat, tint: .fat
+                icon: Image.fat, tint: .fat,
+                subtitle: "today"
             )
 
             macroValue(
                 macrosDataService.macrosService?.budgets?.fat,
                 title: "Budget",
-                icon: Image.fat, tint: .fat
+                icon: Image.fat, tint: .fat,
+                subtitle: "/day"
             )
         }
     }
@@ -337,7 +357,8 @@ public struct OverviewComponent: View {
     private func calorieValue(
         _ value: Double?,
         title: String.LocalizationValue,
-        icon: Image? = nil
+        icon: Image? = nil,
+        subtitle: String? = nil
     ) -> some View {
         MeasurementField(
             validator: nil, format: CalorieFieldDefinition().formatter,
@@ -345,11 +366,36 @@ public struct OverviewComponent: View {
             measurement: .init(
                 baseValue: .constant(value),
                 definition: UnitDefinition<UnitEnergy>.calorie
-            ),
+            )
         ) {
             DetailedRow(image: icon, tint: .calories) {
                 Text(String(localized: title))
             } subtitle: {
+                if let subtitle { Text(subtitle).textScale(.secondary) }
+            } details: {
+            }
+        }
+        .disabled(true)
+    }
+
+    /// Weight rate value (kg/week) with localized unit display.
+    private func weightRateValue(
+        _ value: Double?,
+        title: String.LocalizationValue,
+        icon: Image? = nil
+    ) -> some View {
+        MeasurementField(
+            validator: nil, format: WeightFieldDefinition().formatter,
+            showPicker: true,
+            measurement: .init(
+                baseValue: .constant(value),
+                definition: UnitDefinition<UnitMass>.weight
+            )
+        ) {
+            DetailedRow(image: icon, tint: .weight) {
+                Text(String(localized: title))
+            } subtitle: {
+                Text("/wk").textScale(.secondary)
             } details: {
             }
         }
@@ -359,7 +405,8 @@ public struct OverviewComponent: View {
     private func macroValue(
         _ value: Double?,
         title: String.LocalizationValue,
-        icon: Image? = nil, tint: Color? = nil
+        icon: Image? = nil, tint: Color? = nil,
+        subtitle: String? = nil
     ) -> some View {
         MeasurementField(
             validator: nil, format: ProteinFieldDefinition().formatter,
@@ -372,28 +419,7 @@ public struct OverviewComponent: View {
             DetailedRow(image: icon, tint: tint) {
                 Text(String(localized: title))
             } subtitle: {
-            } details: {
-            }
-        }
-        .disabled(true)
-    }
-
-    @ViewBuilder private func weightValue(
-        _ value: Double?,
-        title: String.LocalizationValue,
-        icon: Image? = nil
-    ) -> some View {
-        MeasurementField(
-            validator: nil, format: WeightFieldDefinition().formatter,
-            showPicker: true,
-            measurement: .init(
-                baseValue: .constant(value),
-                definition: UnitDefinition<UnitMass>.weight
-            ),
-        ) {
-            DetailedRow(image: icon, tint: .weight) {
-                Text(String(localized: title))
-            } subtitle: {
+                if let subtitle { Text(subtitle).textScale(.secondary) }
             } details: {
             }
         }

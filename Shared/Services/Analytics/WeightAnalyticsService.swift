@@ -31,30 +31,69 @@ public struct WeightAnalyticsService: Sendable {
         return (from: min, to: max)
     }
 
+    /// Number of distinct daily weight measurements.
+    var dataPointCount: Int {
+        dailyWeights.count
+    }
+
+    /// Data span in days between first and last measurement.
+    var dataSpanDays: Int {
+        guard let range = weightDateRange else { return 0 }
+        return range.from.distance(
+            to: range.to, in: .day, using: .autoupdatingCurrent
+        ) ?? 0
+    }
+
+    /// Confidence factor (0-1) based on data quality.
+    /// Combines data point density and time span requirements.
+    /// Low confidence dampens the slope estimate toward zero.
+    public var confidence: Double {
+        let pointConfidence = min(1.0, Double(dataPointCount) / Double(MinWeightDataPoints))
+        let spanConfidence = min(1.0, Double(dataSpanDays) / Double(MinWeightSpanDays))
+        return pointConfidence * spanConfidence
+    }
+
     /// Daily energy imbalance ΔE = m * rho (kcal/week)
     var energyImbalance: Double {
         return weightSlope * rho
     }
 
-    /// Estimated weight-change rate m (kg/week)
+    /// Estimated weight-change rate m (kg/week), confidence-blended and clamped.
+    /// With insufficient data, blends toward 0 kg/week baseline.
+    /// Clamped to physiological bounds to prevent absurd values.
     public var weightSlope: Double {
+        let rawSlope = computeSlope * 7  // kg/week
+        // Blend toward 0 baseline: slope = raw * confidence + 0 * (1 - confidence)
+        let blendedSlope = rawSlope * confidence
+        // Clamp to physiological bounds
+        return blendedSlope.clamped(to: -MaxWeightLossPerWeek...MaxWeightGainPerWeek)
+    }
+
+    /// Raw (undamped, unclamped) weight slope for diagnostics (kg/week).
+    public var rawWeightSlope: Double {
         return computeSlope * 7
     }
 
-    /// Raw maintenance estimate M = S - ΔE (kcal/day)
-    public var maintenance: Double? {
-        guard let smoothed = calories.smoothedIntake else { return nil }
-        return smoothed - (energyImbalance / 7.0)
+    /// Maintenance estimate M (kcal/day), confidence-blended toward baseline.
+    /// With insufficient data, blends toward BaselineMaintenance (2000 kcal/day).
+    /// Always returns a value (never nil) for usable budgets.
+    public var maintenance: Double {
+        let rawMaintenance: Double
+        if let smoothed = calories.smoothedIntake {
+            rawMaintenance = smoothed - (energyImbalance / 7.0)
+        } else {
+            rawMaintenance = BaselineMaintenance
+        }
+        // Blend toward baseline: M = raw * confidence + baseline * (1 - confidence)
+        return rawMaintenance * confidence + BaselineMaintenance * (1 - confidence)
     }
 
     /// Whether the maintenance estimate has enough data to be valid.
+    /// Requires valid data from BOTH weight and calorie sources.
     public var isValid: Bool {
-        guard let range = weightDateRange else { return false }
-
-        // Data points must span at least MinValidDataDays
-        return range.from.distance(
-            to: range.to, in: .day, using: .autoupdatingCurrent
-        ) ?? 0 >= MinValidDataDays
+        guard weightDateRange != nil else { return false }
+        let weightValid = dataPointCount >= MinWeightDataPoints && dataSpanDays >= MinWeightSpanDays
+        return weightValid && calories.isValid
     }
 
     /// Computes the slope (Δy/Δx) of time-series data using least-squares linear regression.
