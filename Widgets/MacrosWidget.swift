@@ -59,8 +59,6 @@ struct MacrosWidgetEntryView: View {
 // ============================================================================
 
 struct MacrosTimelineProvider: AppIntentTimelineProvider {
-    @AppStorage(.userGoals, store: SharedDefaults) private var goalsID: UUID
-
     func placeholder(in context: Context) -> MacrosEntry {
         return MacrosEntry(
             date: Date(), macrosService: nil, configuration: MacroSelectionAppIntent())
@@ -90,7 +88,7 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
         -> MacrosEntry
     {
         // Get current macros and adjustment from UserGoals using shared helper
-        let goals = await WidgetsSettings.getGoals(for: goalsID)
+        let goals = await WidgetsSettings.getGoals()
 
         // Create the budget data service first
         let budgetDataService = BudgetDataService(

@@ -26,13 +26,18 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
             content($record)
 
             Section {
-                DatePicker(
-                    selection: $record.date,
-                    displayedComponents: [.date, .hourAndMinute]
-                ) {
+                LabeledContent {
+                    DatePicker(
+                        "",
+                        selection: $record.date,
+                        displayedComponents: [.date, .hourAndMinute]
+                    )
+                    .labelsHidden()
+                    .disabled(formType == .view)
+                    .tint(formType == .view ? .secondary : nil)
+                } label: {
                     Label("Date", systemImage: "calendar")
                 }
-                .disabled(formType == .view)
             }
 
             if formType != .create {
@@ -53,35 +58,24 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
         .scrollDismissesKeyboard(.immediately)
 
         .toolbar {
-            if formType == .view {  // HealthKit samples
-                viewButtons()
-            } else if formType == .edit {  // App samples
+            if formType == .edit {  // App samples
                 editButtons()
-            } else {  // New (app) samples
+            } else if formType == .create {  // New (app) samples
                 createButtons()
             }
+            // View mode has no toolbar - uses navigation back button
         }.toolbarTitleDisplayMode(.inline)
     }
 
     @ToolbarContentBuilder
-    private func viewButtons() -> some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
-            Button(role: .close) {
-                dismiss()
-            } label: {
-                Label("Done", systemImage: "checkmark")
-            }
-        }
-    }
-
-    @ToolbarContentBuilder
     private func editButtons() -> some ToolbarContent {
-        ToolbarItem(placement: .confirmationAction) {
+        ToolbarItem(placement: .cancellationAction) {
             Button(role: .destructive) {
                 showConfirmation = true
             } label: {
                 Label("Delete", systemImage: "trash")
             }
+            .tint(.red)
 
             .confirmationDialog(
                 "Delete \(String(localized: title)) Record",
@@ -107,6 +101,7 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
             } label: {
                 Label("Save", systemImage: "checkmark")
             }
+            .tint(.accentColor)
         }
     }
 

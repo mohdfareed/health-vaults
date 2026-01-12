@@ -9,6 +9,7 @@ import SwiftUI
 public struct OverviewComponent: View {
     @State private var budgetDataService: BudgetDataService
     @State private var macrosDataService: MacrosDataService
+    @State private var hasLoaded: Bool = false
 
     // Store initial parameters for rebuilding services
     private let adjustment: Double?
@@ -93,12 +94,25 @@ public struct OverviewComponent: View {
                 await refresh()
             }
             .task {
+                guard !hasLoaded else { return }
+                hasLoaded = true
                 await refresh()
             }
             .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
                 await refresh()
             }
-
+            .onChange(of: adjustment) { _, newAdjustment in
+                budgetDataService = BudgetDataService(adjustment: newAdjustment, date: date)
+                Task { await refresh() }
+            }
+            .onChange(of: macroAdjustments) { _, newMacroAdjustments in
+                macrosDataService = MacrosDataService(
+                    budgetService: budgetDataService.budgetService,
+                    adjustments: newMacroAdjustments,
+                    date: date
+                )
+                Task { await macrosDataService.refresh() }
+            }
             .animation(.default, value: macrosDataService.macrosService != nil)
             .animation(.default, value: macrosDataService.isLoading)
             .animation(.default, value: budgetDataService.isLoading)
@@ -255,9 +269,7 @@ public struct OverviewComponent: View {
             .refreshable {
                 await refresh()
             }
-            .task {
-                await refresh()
-            }
+            // No .task here - data is already loaded from parent overviewPage
             .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
                 await refresh()
             }
@@ -417,28 +429,13 @@ public struct OverviewComponent: View {
         }
     }
 
-    /// Weight rate value (kg/week) with localized unit display.
+    /// Weight rate value (kg/week or lb/week) with localized unit display.
     private func weightRateValue(
         _ value: Double?,
         title: String.LocalizationValue,
         icon: Image? = nil
     ) -> some View {
-        MeasurementField(
-            validator: nil, format: WeightFieldDefinition().formatter,
-            showPicker: true,
-            measurement: .init(
-                baseValue: .constant(value),
-                definition: UnitDefinition<UnitMass>.weight
-            )
-        ) {
-            DetailedRow(image: icon, tint: .weight) {
-                Text(String(localized: title))
-            } subtitle: {
-                Text("/wk").textScale(.secondary)
-            } details: {
-            }
-        }
-        .disabled(true)
+        WeightRateRow(value: value, title: title, icon: icon)
     }
 
     /// Confidence percentage display.
@@ -507,5 +504,41 @@ public struct OverviewComponent: View {
             // Fallback: try to refresh macros without budget dependency
             await macrosDataService.refresh()
         }
+    }
+}
+
+// MARK: - Weight Rate Row
+// ============================================================================
+
+/// A row displaying a weight rate value with localized unit (e.g., kg/wk or lb/wk)
+private struct WeightRateRow: View {
+    @LocalizedMeasurement var measurement: Measurement<UnitMass>
+
+    let title: String.LocalizationValue
+    let icon: Image?
+
+    init(value: Double?, title: String.LocalizationValue, icon: Image?) {
+        self._measurement = LocalizedMeasurement(
+            .constant(value),
+            definition: UnitDefinition<UnitMass>.weight
+        )
+        self.title = title
+        self.icon = icon
+    }
+
+    var body: some View {
+        MeasurementField(
+            validator: nil, format: WeightFieldDefinition().formatter,
+            showPicker: true,
+            measurement: $measurement
+        ) {
+            DetailedRow(image: icon, tint: .weight) {
+                Text(String(localized: title))
+            } subtitle: {
+                Text("\(measurement.unit.symbol)/wk").textScale(.secondary)
+            } details: {
+            }
+        }
+        .disabled(true)
     }
 }

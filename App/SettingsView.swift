@@ -81,8 +81,10 @@ struct SettingsView: View {
                 } icon: {
                 }.tag(AppTheme.system)
             }
-        ) { Text(self.theme.localized) }
+        ) { Text(self.theme.localized).fixedSize() }
         .frame(maxHeight: 8)
+        .contentTransition(.identity)
+        .transaction { $0.animation = nil }
 
         Picker(
             "Measurements", systemImage: "ruler",
@@ -100,12 +102,14 @@ struct SettingsView: View {
             },
         ) {
             if self.$locale.units.wrappedValue == nil {
-                Text("System")
+                Text("System").fixedSize()
             } else {
-                Text(self.locale.measurementSystem.localized)
+                Text(self.locale.measurementSystem.localized).fixedSize()
             }
         }
         .frame(maxHeight: 8)
+        .contentTransition(.identity)
+        .transaction { $0.animation = nil }
 
         Picker(
             "First Weekday", systemImage: "calendar",
@@ -122,12 +126,14 @@ struct SettingsView: View {
             }
         ) {
             if self.$locale.firstWeekDay.wrappedValue == nil {
-                Text("System")
+                Text("System").fixedSize()
             } else {
-                Text(self.locale.firstDayOfWeek.abbreviated)
+                Text(self.locale.firstDayOfWeek.abbreviated).fixedSize()
             }
         }
         .frame(maxHeight: 8)
+        .contentTransition(.identity)
+        .transaction { $0.animation = nil }
     }
 }
 

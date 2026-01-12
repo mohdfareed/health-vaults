@@ -11,6 +11,7 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
 
     @FocusState
     private var isActive: Bool
+    @State private var hasAppeared: Bool = false
     @ViewBuilder let details: () -> DetailContent
 
     init(
@@ -35,18 +36,23 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
     var body: some View {
         MeasurementField(
             validator: field.validator, format: field.formatter,
-            showPicker: showPicker, measurement: $measurement,
+            showPicker: showPicker, showDoneButton: false,
+            measurement: $measurement
         ) {
             DetailedRow(image: field.icon, tint: field.tint) {
                 Text(String(localized: field.title))
             } subtitle: {
-                if let computed = computed?(),
+                if let computedValue = computed?(),
                     let baseValue = $measurement.baseValue,
-                    abs(baseValue - computed) > .ulpOfOne
+                    abs(baseValue - computedValue) > .ulpOfOne
                 {
-                    computedButton
-                        .textScale(.secondary)
-                        .disabled(!isInternal)
+                    Button {
+                        $measurement.baseValue = computedValue
+                    } label: {
+                        computedButtonLabel(computedValue)
+                    }
+                    .textScale(.secondary)
+                    .disabled(!isInternal)
                 }
 
                 Text(measurement.unit.symbol).textScale(.secondary)
@@ -56,52 +62,66 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
         }
         .disabled(!isInternal)
         .focused($isActive)
-        .animation(.default, value: computed?())
-
-        .toolbar(
-            content: {
+        .animation(hasAppeared ? .default : nil, value: computed?())
+        .onAppear {
+            // Delay setting hasAppeared to avoid animating initial value changes
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                hasAppeared = true
+            }
+        }
+        .toolbar {
+            if isActive {
                 ToolbarItemGroup(placement: .keyboard) {
-                    if isActive && showSign {
+                    // Sign button - only include if needed
+                    if showSign {
                         Button("Invert", systemImage: "plusminus") {
-                            measurement.value = -measurement.value
+                            if let current = $measurement.baseValue {
+                                $measurement.baseValue = -current
+                            }
                         }
                         .disabled(!isInternal)
                     }
-                }
-                ToolbarItemGroup(placement: .keyboard) {
-                    if isActive && computed != nil {
-                        computedButton
-                            .padding(.horizontal)
-                            .fixedSize()
-                            .animation(.default, value: $measurement.baseValue)
-                            .fontDesign(.monospaced)
-                        Spacer()
+
+                    // Computed button - only include if applicable
+                    if let computedValue = computed?(),
+                        let baseValue = $measurement.baseValue,
+                        abs(baseValue - computedValue) > .ulpOfOne
+                    {
+                        Button {
+                            $measurement.baseValue = computedValue
+                        } label: {
+                            computedButtonLabel(computedValue)
+                        }
+                        .fixedSize()
+                        .fontDesign(.monospaced)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        isActive = false
+                    } label: {
+                        Image(systemName: "checkmark")
                     }
                 }
             }
-        )
+        }
+        .transaction { $0.animation = nil }  // Disable toolbar animations
+        .animation(.default, value: $measurement.baseValue)
     }
 
     @ViewBuilder
-    private var computedButton: some View {
-        let baseValue = $measurement.baseValue ?? 0.0
-        let computed = computed?() ?? baseValue
-
+    private func computedButtonLabel(_ computedValue: Double) -> some View {
         HStack(alignment: .center, spacing: 2) {
             let icon = Image(systemName: "function").asText
             Text("\(icon):").foregroundStyle(.indigo.secondary)
 
             $measurement.computedText(
-                computed, format: field.formatter
+                computedValue, format: field.formatter
             )
             .foregroundStyle(.indigo)
-            .contentTransition(.numericText(value: computed))
+            .contentTransition(.numericText(value: computedValue))
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                withAnimation { $measurement.baseValue = computed }
-            }
-        )
     }
 }
 

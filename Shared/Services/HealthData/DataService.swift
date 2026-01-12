@@ -78,6 +78,12 @@ extension DataQuery {
         items.append(contentsOf: page)
     }
 
+    /// Removes an item from the local state without reloading.
+    /// Used for optimistic updates during delete operations.
+    func removeItem(_ item: T) {
+        items.removeAll { $0.id == item.id }
+    }
+
     func loadPage(_ current: [T]) async -> [T] {
         defer { isLoading = false }
         isLoading = true

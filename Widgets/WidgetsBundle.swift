@@ -9,13 +9,20 @@ import WidgetKit
 /// Shared helper for accessing UserGoals data in widgets
 @MainActor
 enum WidgetsSettings {
-    /// Fetches both adjustment and macros from UserGoals
-    static func getGoals(for goalsID: UUID) async -> UserGoals? {
+    /// Fetches both adjustment and macros from UserGoals.
+    /// Reads goalsID from SharedDefaults and falls back to any existing goals if not found.
+    static func getGoals() async -> UserGoals? {
+        // Read goalsID directly from SharedDefaults (key matches Settings.userGoals)
+        let goalsID: UUID =
+            SharedDefaults.string(forKey: "Goals")
+            .flatMap { UUID(uuidString: $0) } ?? .zero
+
         do {
             // Use the shared App Groups container
             let container = try AppSchema.createContainer()
             let context = ModelContext(container)
 
+            // First try to fetch by exact ID
             var descriptor = FetchDescriptor<UserGoals>(
                 predicate: UserGoals.predicate(id: goalsID),
                 sortBy: [.init(\.persistentModelID)]
@@ -23,7 +30,18 @@ enum WidgetsSettings {
             descriptor.fetchLimit = 1
 
             let goals = try context.fetch(descriptor)
-            return goals.first
+            if let found = goals.first {
+                return found
+            }
+
+            // Fallback: fetch any existing UserGoals record
+            var fallbackDescriptor = FetchDescriptor<UserGoals>(
+                sortBy: [.init(\.date, order: .reverse)]
+            )
+            fallbackDescriptor.fetchLimit = 1
+
+            let fallbackGoals = try context.fetch(fallbackDescriptor)
+            return fallbackGoals.first
         } catch {
             AppLogger.new(for: self)
                 .error("Failed to fetch UserGoals: \(error)")

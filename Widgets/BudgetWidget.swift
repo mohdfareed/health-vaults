@@ -56,8 +56,6 @@ struct BudgetWidgetEntryView: View {
 // ============================================================================
 
 struct BudgetTimelineProvider: AppIntentTimelineProvider {
-    @AppStorage(.userGoals, store: SharedDefaults) private var goalsID: UUID
-
     func placeholder(in context: Context) -> BudgetEntry {
         BudgetEntry(date: Date(), budgetService: nil, configuration: ConfigurationAppIntent())
     }
@@ -86,7 +84,7 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
         -> BudgetEntry
     {
         // Get current adjustment from UserGoals using shared helper
-        let goals = await WidgetsSettings.getGoals(for: goalsID)
+        let goals = await WidgetsSettings.getGoals()
 
         // Create the data service with proper settings
         let budgetDataService = BudgetDataService(

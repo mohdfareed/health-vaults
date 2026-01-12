@@ -10,6 +10,7 @@ struct RecordList<T: HealthData>: View {
 
     private let dataModel: HealthDataModel
     private let definition: RecordDefinition
+    private let healthKitDataTypes: [HealthKitDataType]
 
     init(_ dataModel: HealthDataModel, for: T.Type) {
         self.dataModel = dataModel
@@ -19,6 +20,14 @@ struct RecordList<T: HealthData>: View {
         _records = DataQuery(
             query, from: .distantPast, to: .distantFuture
         )
+
+        // Map data model to HealthKit data types for change observation
+        switch dataModel {
+        case .weight:
+            self.healthKitDataTypes = [.bodyMass]
+        case .calorie:
+            self.healthKitDataTypes = [.dietaryCalories]
+        }
     }
 
     var body: some View {
@@ -28,7 +37,7 @@ struct RecordList<T: HealthData>: View {
                     .swipeActions {
                         if record.source == .app {
                             Button(role: .destructive) {
-                                runTask { await delete(record) }
+                                delete(record)
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
@@ -39,17 +48,15 @@ struct RecordList<T: HealthData>: View {
             loadMoreButton()
         }
         .navigationTitle(String(localized: definition.title))
-        .animation(.default, value: $records.isLoading)
-        .animation(.default, value: $records.isExhausted)
 
-        .onAppear {
-            runTask($records.reload)
+        .task {
+            await $records.reload()
         }
         .refreshable {
             await $records.reload()
         }
-        .onChange(of: isCreating) {
-            runTask($records.reload)
+        .refreshOnHealthDataChange(for: healthKitDataTypes) {
+            await $records.reload()
         }
 
         .toolbar {
@@ -70,7 +77,7 @@ struct RecordList<T: HealthData>: View {
     @ViewBuilder private func loadMoreButton() -> some View {
         if !$records.isLoading && !$records.isExhausted {
             Button("Load More") {
-                runTask($records.loadNextPage)
+                Task { await $records.loadNextPage() }
             }
             .frame(maxWidth: .infinity)
         }
@@ -84,19 +91,21 @@ struct RecordList<T: HealthData>: View {
         }
     }
 
-    private func delete(_ record: T) async {
-        do {
-            try await dataModel.query().delete(record, store: healthKit)
-        } catch {
-            AppLogger.new(for: record).error(
-                "Failed to delete record: \(error)"
-            )
-        }
-    }
+    private func delete(_ record: T) {
+        // Optimistically remove from local state immediately
+        $records.removeItem(record)
 
-    private func runTask(_ task: @escaping () async -> Void) {
+        // Then delete from backend
         Task {
-            await task()
+            do {
+                try await dataModel.query().delete(record, store: healthKit)
+                // Notify that data changed so other views can update
+                HealthDataNotifications.shared.notifyDataChanged(for: healthKitDataTypes)
+            } catch {
+                // On error, reload to restore the item
+                AppLogger.new(for: record).error("Failed to delete record: \(error)")
+                await $records.reload()
+            }
         }
     }
 }
@@ -167,16 +176,10 @@ public struct AddMenu: View {
                 }
             }
         } label: {
-            Label("Add Data", systemImage: "plus")
-                .labelStyle(.iconOnly)
-                .imageScale(.large)
-                .padding(4)
+            Label("Add Data", systemImage: "plus.circle.fill")
+                .font(.body)
+                .labelStyle(.titleAndIcon)
         }
-        .transform {
-            $0.glassEffect(.regular, in: .circle)
-                .buttonStyle(.glass)
-        }
-        .buttonBorderShape(.circle)
     }
 }
 
