@@ -55,7 +55,7 @@ Key pattern changes:
 ---
 
 ## Version
-- App version: 1.2.1 (in progress)
+- App version: 1.2.1 (build 1)
 
 **🔴 CRITICAL BUG: `@AppStorage` in struct is not reactive**
 

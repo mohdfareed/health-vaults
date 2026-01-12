@@ -44,13 +44,6 @@ struct AppView: View {
         }
         .environment(\.locale, self.locale)
         .preferredColorScheme(self.theme.colorScheme)
-        #if os(iOS)
-            .tabViewBottomAccessory {
-                AddMenu { dataModel in
-                    activeDataModel = dataModel
-                }
-            }
-        #endif
 
         .animation(.default, value: self.theme)
         .animation(.default, value: self.colorScheme)
@@ -61,6 +54,14 @@ struct AppView: View {
         .contentTransition(.opacity)
         .onAppear {
             healthKitService.requestAuthorization()
+        }
+
+        .overlay(alignment: .bottomTrailing) {
+            AddMenu { dataModel in
+                activeDataModel = dataModel
+            }
+            .padding(.bottom, 64)
+            .padding(.trailing, 8)
         }
 
         .sheet(item: $activeDataModel) { dataModel in

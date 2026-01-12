@@ -160,26 +160,23 @@ public struct AddMenu: View {
 
     public var body: some View {
         Menu {
-            ForEach(
-                HealthDataModel.allCases, id: \.self
-            ) { dataModel in
+            ForEach(HealthDataModel.allCases, id: \.self) { dataModel in
                 Button(action: { action(dataModel) }) {
                     Label {
-                        Text(
-                            String(
-                                localized: dataModel.definition.title
-                            )
-                        )
+                        Text(String(localized: dataModel.definition.title))
                     } icon: {
                         dataModel.definition.icon
                     }
                 }
             }
         } label: {
-            Label("Add Data", systemImage: "plus.circle.fill")
-                .font(.body)
-                .labelStyle(.titleAndIcon)
+            Label("Add Data", systemImage: "plus")
+                .labelStyle(.iconOnly)
+                .font(.title2)
         }
+        .buttonStyle(.glass)
+        .buttonBorderShape(.circle)
+        .controlSize(.large)
     }
 }
 
