@@ -6,7 +6,7 @@ A flexible calorie tracking app for iOS with rolling weekly budgets and adaptive
 
 - **Rolling Credit System**: Unused calories carry forward within a 7-day window
 - **Adaptive Maintenance**: TDEE calculated from weight trends via weighted linear regression
-- **HealthKit Integration**: Bidirectional sync for calories, weight, and macros
+- **HealthKit Integration**: Bidirectional sync for calories, weight, and macros; reads body fat % for personalized energy density
 - **Widgets**: WidgetKit-based budget and macro displays
 - **Macro Tracking**: Protein, carbohydrate, and fat monitoring
 
@@ -33,12 +33,13 @@ Rolling 7-day window. Only logged days contribute—missing days are excluded, n
 ### Maintenance Estimation
 
 ```
-Maintenance = EWMA(Intake) − (WeightSlope × 7700)
+Maintenance = EWMA(Intake) − (WeightSlope × ρ)
 ```
 
 - **WeightSlope**: Weighted linear regression over 28 days (decay = 0.9/day)
-- **7700 kcal/kg**: Energy density of body mass
-- **Confidence blending**: Interpolates toward 2000 kcal baseline when data is sparse
+- **ρ (energy density)**: Personalized via Forbes partition model when body fat % is available from HealthKit; defaults to 7350 kcal/kg
+- **Forbes model**: `p = FM / (FM + 10.4)`, then `ρ = p × 9440 + (1−p) × 1816` kcal/kg
+- **Confidence blending**: Interpolates toward 2200 kcal baseline when data is sparse
 
 Requires ≥7 weight measurements and ≥14 calorie entries over ≥14 days for full confidence.
 

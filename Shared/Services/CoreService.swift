@@ -86,6 +86,15 @@ extension View {
             set: { self.wrappedValue = $0 ?? defaultValue }
         )
     }
+
+    /// A binding that scales the optional Double value by a factor.
+    /// The getter multiplies by the factor; the setter divides by the factor.
+    func scaled(by factor: Double) -> Binding<Double?> where Value == Double? {
+        .init(
+            get: { self.wrappedValue.map { $0 * factor } },
+            set: { self.wrappedValue = $0.map { $0 / factor } }
+        )
+    }
 }
 
 // MARK: - JSON Serialization

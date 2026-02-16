@@ -59,9 +59,9 @@ public let MinCalorieDataPoints = 14
 
 /// Maximum physiological weight change rate (kg/week).
 /// Fat loss is limited by energy deficit; gain by surplus + muscle synthesis.
-/// Bounds: ~1 kg/week loss (extreme), ~0.5 kg/week gain (realistic).
+/// Bounds: ~1 kg/week loss (extreme), ~0.75 kg/week gain (lean bulk + fat).
 public let MaxWeightLossPerWeek = 1.0  // kg/week
-public let MaxWeightGainPerWeek = 0.5  // kg/week
+public let MaxWeightGainPerWeek = 0.75  // kg/week
 
 /// Maximum daily budget adjustment from credit (kcal).
 /// Prevents extreme budgets when credit is very positive/negative.
@@ -69,7 +69,24 @@ public let MaxDailyAdjustment = 500.0  // kcal/day
 
 /// Baseline maintenance estimate (kcal/day) used when data is insufficient.
 /// Blended with calculated value based on confidence factor.
-public let BaselineMaintenance = 2000.0  // kcal/day
+/// 2200 is the population-weighted average TDEE (male ~2500, female ~2000).
+public let BaselineMaintenance = 2200.0  // kcal/day
+
+// MARK: Forbes Partition Model
+// Energy density of weight change depends on body composition.
+// Forbes (2000), Hall (2008): tissue-specific energy densities.
+
+/// Energy density of adipose tissue (kcal/kg). Adipose is ~87% lipid.
+public let FatTissueEnergy = 9_440.0  // kcal/kg
+/// Energy density of fat-free mass (kcal/kg). Hydrated lean tissue
+/// including protein turnover and glycogen.
+public let LeanTissueEnergy = 1_816.0  // kcal/kg
+/// Forbes constant (kg). Controls fat vs lean partitioning as a function
+/// of total fat mass: p = FM / (FM + C), where p is the fat fraction.
+public let ForbesConstant = 10.4  // kg
+/// Default energy density (kcal/kg) when body fat % is unknown.
+/// Corresponds to ~34% body fat (population average).
+public let DefaultRho = 7_350.0  // kcal/kg
 
 // MARK: - SwiftData Schema
 // ============================================================================

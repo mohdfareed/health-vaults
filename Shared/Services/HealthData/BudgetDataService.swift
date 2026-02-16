@@ -1,4 +1,5 @@
 import Foundation
+import HealthKit
 import Observation
 import SwiftUI
 import WidgetKit
@@ -107,6 +108,9 @@ public final class BudgetDataService: @unchecked Sendable {
             options: .discreteAverage
         )
 
+        // Fetch most recent body fat percentage from HealthKit
+        let bodyFatData = await fetchLatestBodyFatPercentage()
+
         // Create analytics services
 
         let weightAnalytics = MaintenanceService(
@@ -116,7 +120,7 @@ public final class BudgetDataService: @unchecked Sendable {
                 alpha: 0.25  // 7 days - for smoothed intake in maintenance calc
             ),
             weights: weightData,
-            rho: 7700  // Conservative: 7700 kcal/kg
+            bodyFatPercentage: bodyFatData
         )
 
         // Create budget service with rolling 7-day credit and weekly repayment
@@ -174,5 +178,37 @@ public final class BudgetDataService: @unchecked Sendable {
     public func stopObserving(widgetId: String = "BudgetDataService") {
         healthKitService.stopObserving(for: widgetId)
         logger.info("Stopped observing HealthKit data for budget")
+    }
+
+    /// Fetches the most recent body fat percentage from HealthKit.
+    /// Returns a fraction (0-1), or nil if unavailable.
+    private func fetchLatestBodyFatPercentage() async -> Double? {
+        guard HealthKitService.isAvailable else { return nil }
+        let type = HKQuantityType(.bodyFatPercentage)
+        let sortDescriptor = NSSortDescriptor(
+            key: HKSampleSortIdentifierStartDate, ascending: false
+        )
+        return await withCheckedContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: nil,
+                limit: 1,
+                sortDescriptors: [sortDescriptor]
+            ) { _, samples, error in
+                if let error = error {
+                    AppLogger.new(for: BudgetDataService.self)
+                        .warning("Failed to fetch body fat %: \(error)")
+                    continuation.resume(returning: nil)
+                    return
+                }
+                guard let sample = samples?.first as? HKQuantitySample else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let value = sample.quantity.doubleValue(for: .percent())
+                continuation.resume(returning: value)
+            }
+            healthKitService.store.execute(query)
+        }
     }
 }

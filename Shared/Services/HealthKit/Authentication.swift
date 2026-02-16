@@ -22,8 +22,13 @@ extension HealthKitService {
         }
 
         let dataTypes = HealthKitDataType.allCases.map { $0.sampleType }
+        // Body fat percentage is read-only (used for personalized energy density)
+        let readTypes = Set(dataTypes) as Set<HKObjectType>
+        let extraReadTypes: Set<HKObjectType> = [
+            HKQuantityType(.bodyFatPercentage)
+        ]
         store.requestAuthorization(
-            toShare: Set(dataTypes), read: Set(dataTypes)
+            toShare: Set(dataTypes), read: readTypes.union(extraReadTypes)
         ) { [weak self] success, error in
             if let error = error {
                 self?.logger.error("HealthKit authorization failed: \(error)")

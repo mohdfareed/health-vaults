@@ -23,8 +23,25 @@ public struct MaintenanceService: Sendable {
 
     /// Recent daily weights (kg), oldest first
     let weights: [Date: Double]
-    /// Energy per unit weight change (kcal per kg, default is 7700)
-    let rho: Double
+    /// Body fat percentage (0-1), if available from HealthKit.
+    let bodyFatPercentage: Double?
+
+    /// Energy per unit weight change (kcal/kg).
+    /// Computed via Forbes partition model when body fat % is available,
+    /// otherwise falls back to `DefaultRho` (7350).
+    var rho: Double {
+        guard let bf = bodyFatPercentage,
+              let latestWeight = latestWeight
+        else { return DefaultRho }
+        let fatMass = bf * latestWeight
+        let p = fatMass / (fatMass + ForbesConstant)
+        return p * FatTissueEnergy + (1 - p) * LeanTissueEnergy
+    }
+
+    /// Most recent weight measurement (kg).
+    private var latestWeight: Double? {
+        dailyWeights.max(by: { $0.key < $1.key })?.value
+    }
 
     /// Daily weight buckets.
     var dailyWeights: [Date: Double] {

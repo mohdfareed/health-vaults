@@ -52,6 +52,39 @@ struct MaintenanceFieldDefinition: FieldDefinition {
     }
 }
 
+/// Weekly calorie maintenance field definition
+struct WeeklyMaintenanceFieldDefinition: FieldDefinition {
+    typealias Unit = UnitEnergy
+
+    let title: String.LocalizationValue = "Weekly Maintenance"
+    let icon = Image.maintenance
+    let tint = Color.calories
+    let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
+    let validator: (@Sendable (Double) -> Bool)? = { _ in true }
+
+    @MainActor
+    func measurement(_ binding: Binding<Double?>) -> LocalizedMeasurement<UnitEnergy> {
+        LocalizedMeasurement(binding, definition: UnitDefinition.calorie)
+    }
+}
+
+/// Weekly calorie adjustment field definition
+struct WeeklyCalorieAdjustmentFieldDefinition: FieldDefinition {
+    typealias Unit = UnitEnergy
+
+    let title: String.LocalizationValue = "Weekly Adjustment"
+    let icon = Image(systemName: "plusminus.circle")
+        .symbolRenderingMode(.hierarchical)
+    let tint = Color.indigo
+    let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
+    let validator: (@Sendable (Double) -> Bool)? = { _ in true }
+
+    @MainActor
+    func measurement(_ binding: Binding<Double?>) -> LocalizedMeasurement<UnitEnergy> {
+        LocalizedMeasurement(binding, definition: UnitDefinition.calorie)
+    }
+}
+
 @MainActor
 let calorieRecordDefinition = RecordDefinition(
     title: "Calories", icon: .calories, color: .calories

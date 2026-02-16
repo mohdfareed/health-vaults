@@ -42,6 +42,12 @@ struct GoalMeasurementField: View {
                 isInternal: true,
                 showSign: true
             )
+            RecordRow(
+                field: WeeklyCalorieAdjustmentFieldDefinition(),
+                value: $goals.adjustment.scaled(by: 7),
+                isInternal: true,
+                showSign: true
+            )
         }
 
         Section(header: Text("Macros Breakdown")) {
@@ -105,6 +111,11 @@ struct CalorieMaintenanceField: View {
         RecordRow(
             field: MaintenanceFieldDefinition(),
             value: .constant(budgetDataService.budgetService?.weight.maintenance),
+            isInternal: false
+        )
+        RecordRow(
+            field: WeeklyMaintenanceFieldDefinition(),
+            value: .constant((budgetDataService.budgetService?.weight.maintenance).map { $0 * 7 }),
             isInternal: false
         )
         .onAppear {
