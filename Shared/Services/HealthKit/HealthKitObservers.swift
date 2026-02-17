@@ -1,6 +1,5 @@
 import Foundation
 import HealthKit
-import SwiftUI
 import WidgetKit
 
 // MARK: Observer Management
@@ -23,6 +22,10 @@ extension HealthKitService {
 
         for dataType in dataTypes {
             let observerKey = observerKey(for: widgetKind, dataType: dataType)
+
+            // Reset retry count for fresh observer setup
+            observerQueue.sync { observerRetryCounts[observerKey] = 0 }
+
             let observer = HKObserverQuery(
                 sampleType: dataType.sampleType,
                 predicate: predicate
@@ -37,16 +40,38 @@ extension HealthKitService {
                         "Observer error for \(observerKey): \(error)"
                     )
 
-                    // Retry after a delay
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                        self.startObserving(
-                            for: widgetKind, dataTypes: [dataType],
-                            from: startDate, to: endDate,
-                            onUpdate: onUpdate
+                    // Retry with exponential backoff, capped at maxObserverRetries
+                    let retryCount = self.observerQueue.sync {
+                        self.observerRetryCounts[observerKey] ?? 0
+                    }
+
+                    if retryCount < self.maxObserverRetries {
+                        self.observerQueue.sync {
+                            self.observerRetryCounts[observerKey] = retryCount + 1
+                        }
+                        let delay = 5.0 * pow(3.0, Double(retryCount))  // 5s, 15s, 45s
+                        self.logger.warning(
+                            "Retrying observer \(observerKey) in \(delay)s (attempt \(retryCount + 1)/\(self.maxObserverRetries))"
+                        )
+                        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                            self.startObserving(
+                                for: widgetKind, dataTypes: [dataType],
+                                from: startDate, to: endDate,
+                                onUpdate: onUpdate
+                            )
+                        }
+                    } else {
+                        self.logger.error(
+                            "Observer \(observerKey) failed after \(self.maxObserverRetries) retries, giving up"
                         )
                     }
                     completionHandler()
                     return
+                }
+
+                // Reset retry count on successful callback
+                self.observerQueue.sync {
+                    self.observerRetryCounts[observerKey] = 0
                 }
 
                 self.logger.debug(
@@ -60,7 +85,9 @@ extension HealthKitService {
                 completionHandler()
             }
 
-            activeObservers[observerKey] = observer
+            observerQueue.sync {
+                activeObservers[observerKey] = observer
+            }
             self.store.execute(observer)
 
             // Enable background delivery for this data type
@@ -91,28 +118,22 @@ extension HealthKitService {
 
     /// Stop observing HealthKit data changes for a specific widget
     public func stopObserving(for widgetKind: String) {
-        let observersToRemove = activeObservers.filter { key, _ in
-            key.hasPrefix("\(widgetKind)_")
-        }
+        observerQueue.sync {
+            let observersToRemove = activeObservers.filter { key, _ in
+                key.hasPrefix("\(widgetKind)_")
+            }
 
-        for (key, observer) in observersToRemove {
-            self.store.stop(observer)
-            activeObservers.removeValue(forKey: key)
-            logger.info("Stopped observer: \(key)")
+            for (key, observer) in observersToRemove {
+                self.store.stop(observer)
+                activeObservers.removeValue(forKey: key)
+                observerRetryCounts.removeValue(forKey: key)
+                logger.info("Stopped observer: \(key)")
+            }
         }
-    }
-
-    /// Stop all active observers
-    public func stopAllObservers() {
-        for (key, observer) in activeObservers {
-            self.store.stop(observer)
-            logger.info("Stopped observer: \(key)")
-        }
-        activeObservers.removeAll()
     }
 
     /// Get the observer key for a specific widget and data type
-    public func observerKey(
+    func observerKey(
         for widgetKind: String, dataType: HealthKitDataType
     ) -> String { "\(widgetKind)_\(dataType.sampleType.identifier)" }
 }

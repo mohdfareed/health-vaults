@@ -46,7 +46,6 @@ public struct UnitDefinition<D: Dimension>: Sendable {
 // ============================================================================
 
 /// A protocol to define the raw value stored in the `UserDefaults` database.
-/// It an be implemented with `String` or `Int` to support enumeration types.
 public protocol SettingsValue: Sendable {}
 /// A protocol to define a settings value that can be stored as a string.
 /// New settings value types can be created by implementing this protocol.

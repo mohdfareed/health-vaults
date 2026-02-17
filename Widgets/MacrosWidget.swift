@@ -90,7 +90,6 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
         // Get current macros and adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals()
 
-        // Create the budget data service first
         let budgetDataService = BudgetDataService(
             adjustment: goals?.adjustment,
             date: date
@@ -103,6 +102,11 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
         var macrosService: MacrosAnalyticsService? = nil
 
         if let budgetService = budgetDataService.budgetService {
+            // Cache valid budget data for the budget widget too
+            if budgetService.isValid {
+                WidgetDataCache.saveBudget(budgetService)
+            }
+
             let macrosDataService = MacrosDataService(
                 budgetService: budgetService,
                 adjustments: goals?.macros,
@@ -114,9 +118,21 @@ struct MacrosTimelineProvider: AppIntentTimelineProvider {
             macrosService = macrosDataService.macrosService
         }
 
+        if let macrosService {
+            // Cache successful macros result
+            WidgetDataCache.saveMacros(macrosService)
+            return MacrosEntry(
+                date: date,
+                macrosService: macrosService,
+                configuration: configuration
+            )
+        }
+
+        // Fall back to cached macros data
+        let cached = WidgetDataCache.loadMacros()
         return MacrosEntry(
             date: date,
-            macrosService: macrosService,
+            macrosService: cached,
             configuration: configuration
         )
     }

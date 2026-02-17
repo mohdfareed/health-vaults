@@ -1,6 +1,5 @@
 import Foundation
 import HealthKit
-import SwiftUI
 
 // MARK: Authorization
 // ============================================================================

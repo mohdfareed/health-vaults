@@ -8,6 +8,7 @@ public struct DashboardCard<Content: View, Destination: View>: View {
     let title: String.LocalizationValue
     let icon: Image
     let color: Color
+    let footer: String?
 
     @ViewBuilder let content: Content
     @ViewBuilder let destination: Destination
@@ -16,20 +17,28 @@ public struct DashboardCard<Content: View, Destination: View>: View {
         title: String.LocalizationValue,
         icon: Image,
         color: Color,
+        footer: String? = nil,
         @ViewBuilder content: () -> Content,
         @ViewBuilder destination: () -> Destination
     ) {
         self.title = title
         self.icon = icon
         self.color = color
+        self.footer = footer
         self.content = content()
         self.destination = destination()
     }
 
     public var body: some View {
-        Section(String(localized: title)) {
+        Section {
             content
                 .padding(.vertical, 4)
+        } header: {
+            Text(String(localized: title))
+        } footer: {
+            if let footer {
+                Text(footer)
+            }
         }
         .fontDesign(.rounded)
     }

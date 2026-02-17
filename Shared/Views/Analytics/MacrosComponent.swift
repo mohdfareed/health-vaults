@@ -124,10 +124,10 @@ public struct MacrosComponent: View {
                 adjustments: macroAdjustments,
                 date: date
             )
-            macrosDataService = newMacrosDataService
 
-            // Now refresh macros with budget context
-            await macrosDataService?.refresh()
+            // Load data before swapping to avoid flicker
+            await newMacrosDataService.refresh()
+            macrosDataService = newMacrosDataService
         }
     }
 }

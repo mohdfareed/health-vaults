@@ -1,11 +1,9 @@
 import Foundation
-import SwiftUI
-import WidgetKit
 
 // MARK: Budget Service
 // ============================================================================
 
-public struct MacrosAnalyticsService: Sendable {
+public struct MacrosAnalyticsService: Sendable, Codable {
     // MARK: - Types
 
     /// Represents the different macro nutrients for ring display

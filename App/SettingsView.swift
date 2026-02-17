@@ -25,7 +25,14 @@ struct SettingsView: View {
                     generalSettings
                 }
 
-                GoalView(goalsID).animation(.default, value: goalsID)
+                Section(header: Text("Goals")) {
+                    NavigationLink(destination: CalorieGoalView(goalsID)) {
+                        Label("Calorie Goals", systemImage: "target")
+                    }
+                    NavigationLink(destination: MacrosGoalView(goalsID)) {
+                        Label("Macros", systemImage: "chart.pie")
+                    }
+                }
 
                 Section {
                     HealthPermissionsManager(service: healthKit)

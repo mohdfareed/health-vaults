@@ -1,5 +1,4 @@
 import Foundation
-import HealthKit
 
 /// SwiftData model for weight data.
 @Observable public final class Weight: HealthData, @unchecked Sendable {

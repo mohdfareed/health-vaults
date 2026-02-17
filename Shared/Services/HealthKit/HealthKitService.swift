@@ -26,9 +26,14 @@ public class HealthKitService: @unchecked Sendable {
 
     // Observation management
     internal var activeObservers: [String: HKObserverQuery] = [:]
+    internal var observerRetryCounts: [String: Int] = [:]
+    internal let maxObserverRetries = 3
     internal let observerQueue = DispatchQueue(
         label: ObserversID, qos: .utility
     )
+
+    // NotificationCenter observer token
+    internal var unitObserverToken: (any NSObjectProtocol)?
 
     private init() {
         guard Self.isAvailable else {

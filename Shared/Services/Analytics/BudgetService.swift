@@ -1,12 +1,10 @@
 import Foundation
-import SwiftUI
-import WidgetKit
 
 // MARK: - Budget Analytics Service
 // ============================================================================
 
 /// Core budget calculations using rolling 7-day credit and weekly repayment schedule.
-public struct BudgetService: Sendable {
+public struct BudgetService: Sendable, Codable {
     public let calories: IntakeAnalyticsService
     public let weight: MaintenanceService
 

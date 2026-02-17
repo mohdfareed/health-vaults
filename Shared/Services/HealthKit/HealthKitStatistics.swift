@@ -129,16 +129,10 @@ extension HealthKitService {
 extension HealthKitService {
     private func getTargetUnit(for type: HealthKitDataType) -> HKUnit {
         switch type {
-        case .dietaryCalories:
-            return .kilocalorie()
-        // case .activeCalories, .basalCalories:
-        //     return .kilocalorie()
-        case .protein, .carbs, .fat:
-            return .gram()
-        case .bodyMass:
-            return .gramUnit(with: .kilo)
-        case .alcohol:  // Corresponds to numberOfAlcoholicBeverages
-            return .count()
+        case .dietaryCalories: .kilocalorie()
+        case .protein, .carbs, .fat: .gram()
+        case .bodyMass: .gramUnit(with: .kilo)
+        case .alcohol: .count()
         }
     }
 }

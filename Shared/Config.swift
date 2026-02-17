@@ -1,9 +1,6 @@
 import SwiftData
 import SwiftUI
 
-// TODO: Create reusable goals the user can choose from.
-// TODO: Create calorie entries preset system.
-
 // MARK: - App Configuration
 // ============================================================================
 
@@ -45,11 +42,6 @@ public let RegressionDecay = 0.9
 /// 0.1 → ~2 week half-life, reflects sustained eating patterns.
 public let MaintenanceAlpha = 0.1
 
-/// EWMA alpha for display purposes (recent intake pattern).
-/// Higher value = responsive to recent changes.
-/// 0.25 → ~3 day half-life, shows current eating pattern.
-public let DisplayAlpha = 0.25
-
 /// Minimum data points required for full confidence.
 /// ~2 measurements per week over 4 weeks.
 public let MinWeightDataPoints = 7
@@ -62,10 +54,6 @@ public let MinCalorieDataPoints = 14
 /// Bounds: ~1 kg/week loss (extreme), ~0.75 kg/week gain (lean bulk + fat).
 public let MaxWeightLossPerWeek = 1.0  // kg/week
 public let MaxWeightGainPerWeek = 0.75  // kg/week
-
-/// Maximum daily budget adjustment from credit (kcal).
-/// Prevents extreme budgets when credit is very positive/negative.
-public let MaxDailyAdjustment = 500.0  // kcal/day
 
 /// Baseline maintenance estimate (kcal/day) used when data is insufficient.
 /// Blended with calculated value based on confidence factor.

@@ -1,7 +1,4 @@
 import Foundation
-import SwiftData
-import SwiftUI
-import WidgetKit
 
 // TODO: Implement body-fat percentage calculations to implement
 // Hall's NIH dynamic model of energy imbalance
@@ -23,7 +20,7 @@ import WidgetKit
 ///
 /// The weighted regression responds faster to recent changes while the long-term
 /// EWMA for intake prevents single-day spikes from affecting maintenance.
-public struct MaintenanceService: Sendable {
+public struct MaintenanceService: Sendable, Codable {
     let calories: IntakeAnalyticsService
 
     /// Recent daily weights (kg), oldest first

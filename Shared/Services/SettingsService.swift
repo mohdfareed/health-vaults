@@ -4,8 +4,6 @@ import SwiftUI
 // MARK: Primitive Types
 // ============================================================================
 
-extension Query { typealias Settings = AppStorage }  // convenience
-
 // Types natively supported by `UserDefaults`.
 extension String: SettingsValue {}
 extension Bool: SettingsValue {}

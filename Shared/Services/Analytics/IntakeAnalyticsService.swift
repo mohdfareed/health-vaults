@@ -1,13 +1,11 @@
 import Foundation
-import SwiftData
-import SwiftUI
 
 // MARK: - Intake Analytics Service
 // ============================================================================
 
 /// Core analytics service implementing EWMA smoothing for intake data.
 /// Used for both calorie tracking (28-day window) and macro tracking (7-day window).
-public struct IntakeAnalyticsService: Sendable {
+public struct IntakeAnalyticsService: Sendable, Codable {
     /// Current day's intake values.
     let currentIntakes: [Date: Double]
     /// Historical daily intake values.

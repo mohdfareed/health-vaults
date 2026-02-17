@@ -116,22 +116,30 @@ private struct MediumBudgetLayout: View {
     }
 
     var body: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                CalorieContent(data: budget)
-                BudgetContent(data: budget, isWidget: isWidget)
-                CreditContent(data: budget)
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    CalorieContent(data: budget)
+                    BudgetContent(data: budget, isWidget: isWidget)
+                    CreditContent(data: budget)
+                }
+                Spacer()
+                ProgressRing(
+                    value: budget.baseBudget,
+                    progress: budget.calories.currentIntake ?? 0,
+                    threshold: budget.budget,
+                    color: .calories,
+                    thresholdColor: budget.credit >= 0 ? .green : .red,
+                    icon: Image.calories
+                )
+                .frame(maxWidth: 80)
             }
-            Spacer()
-            ProgressRing(
-                value: budget.baseBudget,
-                progress: budget.calories.currentIntake ?? 0,
-                threshold: budget.budget,
-                color: .calories,
-                thresholdColor: budget.credit >= 0 ? .green : .red,
-                icon: Image.calories
-            )
-            .frame(maxWidth: 80)
+
+            if !isWidget {
+                Text("Budget + credit ÷ \(budget.daysLeft) days left")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
@@ -179,7 +187,8 @@ private func CalorieContent(data: BudgetService) -> some View {
                 baseValue: .constant(data.remaining),
                 definition: UnitDefinition<UnitEnergy>.calorie
             ),
-            icon: nil, tint: nil, format: formatter
+            icon: nil, tint: nil, format: formatter,
+            label: "left"
         )
         .fontWeight(.bold)
         .font(.title)

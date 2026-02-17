@@ -16,10 +16,13 @@ extension HealthKitService {
         await self.loadUnits()  // Load initial units
 
         // Observe changes to user preferences and reload units
-        NotificationCenter.default.addObserver(
+        unitObserverToken = NotificationCenter.default.addObserver(
             forName: .HKUserPreferencesDidChange,
             object: nil, queue: .main
-        ) { _ in Task { await self.loadUnits() } }
+        ) { [weak self] _ in
+            guard let self else { return }
+            Task { await self.loadUnits() }
+        }
     }
 
     private func loadUnits() async {
@@ -113,16 +116,10 @@ extension HKUnit {
 extension HealthKitDataType {
     public var baseUnit: HKUnit {
         switch self {
-        case .dietaryCalories:
-            return .kilocalorie()
-        // case .activeCalories, .basalCalories:
-        //     return .kilocalorie()
-        case .protein, .carbs, .fat:
-            return .gram()
-        case .bodyMass:
-            return .gramUnit(with: .kilo)
-        case .alcohol:  // Corresponds to numberOfAlcoholicBeverages
-            return .count()
+        case .dietaryCalories: .kilocalorie()
+        case .protein, .carbs, .fat: .gram()
+        case .bodyMass: .gramUnit(with: .kilo)
+        case .alcohol: .count()
         }
     }
 }

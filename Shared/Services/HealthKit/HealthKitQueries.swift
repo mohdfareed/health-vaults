@@ -1,6 +1,5 @@
 import Foundation
 import HealthKit
-import SwiftUI
 
 // MARK: Data Access
 // ============================================================================
@@ -122,17 +121,6 @@ extension HealthKitService {
 // ============================================================================
 
 extension HealthKitService {
-    public func fetchSamples(
-        for type: HealthKitDataType,
-        from startDate: Date = .distantPast, to endDate: Date = .distantPast,
-        limit: Int? = nil, predicate: NSPredicate? = nil
-    ) async -> [HKSample] {
-        return await fetchSamples(
-            for: type.sampleType, from: startDate, to: endDate,
-            limit: limit, predicate: predicate
-        )
-    }
-
     public func fetchQuantitySamples(
         for type: HealthKitDataType,
         from startDate: Date = .distantPast, to endDate: Date = .distantPast,
@@ -160,15 +148,15 @@ extension HealthKitService {
         limit: Int? = nil, predicate: NSPredicate? = nil
     ) async -> [HKQuantitySample] {
         var finalPredicate = HKQuery.predicateForObjectsWithNoCorrelation()
-        if let predicate = predicate {
+        if let predicate {
             finalPredicate = NSCompoundPredicate(
                 andPredicateWithSubpredicates: [finalPredicate, predicate]
             )
         }
-
         return await fetchSamples(
-            for: .dietaryCalories, from: startDate, to: endDate,
-            limit: limit, predicate: predicate
+            for: HealthKitDataType.dietaryCalories.sampleType,
+            from: startDate, to: endDate,
+            limit: limit, predicate: finalPredicate
         ) as? [HKQuantitySample] ?? []
     }
 
@@ -177,15 +165,15 @@ extension HealthKitService {
         limit: Int? = nil, predicate: NSPredicate? = nil
     ) async -> [HKQuantitySample] {
         var finalPredicate = HKQuery.predicateForObjectsWithNoCorrelation()
-        if let predicate = predicate {
+        if let predicate {
             finalPredicate = NSCompoundPredicate(
                 andPredicateWithSubpredicates: [finalPredicate, predicate]
             )
         }
-
         return await fetchSamples(
-            for: .alcohol, from: startDate, to: endDate,
-            limit: limit, predicate: predicate
+            for: HealthKitDataType.alcohol.sampleType,
+            from: startDate, to: endDate,
+            limit: limit, predicate: finalPredicate
         ) as? [HKQuantitySample] ?? []
     }
 }

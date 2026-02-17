@@ -15,28 +15,6 @@ extension [Date: Double] {
         }
         return buckets
     }
-
-    /// The data points in the time series, sorted by date.
-    var points: [Double] {
-        self
-            .sorted { $0.key < $1.key }  // Sort by date
-            .map { $0.value }  // Extract values
-    }
-}
-
-// MARK: Data Points
-// ============================================================================
-
-extension Sequence {
-    /// Create data points from a sequence of elements.
-    func points<T>(_ keyPath: KeyPath<Element, T>) -> [T] {
-        return map { $0[keyPath: keyPath] }
-    }
-
-    /// Create data points from a sequence of elements.
-    func points<X, Y>(
-        x: KeyPath<Element, X>, y: KeyPath<Element, Y>
-    ) -> [(x: X, y: Y)] { map { ($0[keyPath: x], $0[keyPath: y]) } }
 }
 
 // MARK: Statistics
@@ -131,7 +109,6 @@ extension Date {
     }
 
     /// Previous weekday occurrence (or today if it matches).
-    /// Returns the most recent date that is the given weekday, including today.
     func previous(_ weekday: Int, using cal: Calendar) -> Date? {
         let components = cal.dateComponents(
             [.year, .month, .day, .weekday], from: self

@@ -58,15 +58,6 @@ extension UnitMass {
     }
 }
 
-extension UnitMass {
-    /// Standard drink unit definition (14 grams of alcohol).
-    public static let standardDrink = UnitMass(
-        symbol: "drinks",
-        converter: UnitConverterLinear(coefficient: 0.014)  // kg
-
-    )
-}
-
 extension UnitVolume {
     /// Standard drink unit definition (17.7 milliliters of pure alcohol).
     public static let standardDrink = UnitVolume(
@@ -85,12 +76,4 @@ extension UnitDuration {
         )
     }
 
-    /// A unit for representing weeks, based on seconds.
-    public static var weeks: UnitDuration {
-        return UnitDuration(
-            symbol: "w",
-            // 60 seconds * 60 minutes * 24 hours * 7 days
-            converter: UnitConverterLinear(coefficient: 60 * 60 * 24 * 7)
-        )
-    }
 }

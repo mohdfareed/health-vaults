@@ -17,7 +17,6 @@ public final class BudgetDataService: @unchecked Sendable {
     private let healthKitService: HealthKitService
     private let adjustment: Double?
     private let date: Date
-
     private let logger = AppLogger.new(for: BudgetDataService.self)
 
     public init(

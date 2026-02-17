@@ -62,14 +62,6 @@ extension UUID {
     )!  // tested
 }
 
-extension View {
-    @ViewBuilder func transform(
-        @ViewBuilder _ transform: (Self) -> some View
-    ) -> some View {
-        transform(self)
-    }
-}
-
 @MainActor extension Binding {
     /// A binding that defaults to a value if the wrapped value is nil.
     func defaulted<T>(to defaultValue: T) -> Binding<T> where Value == T? {

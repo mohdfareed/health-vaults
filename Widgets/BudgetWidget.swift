@@ -86,7 +86,6 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
         // Get current adjustment from UserGoals using shared helper
         let goals = await WidgetsSettings.getGoals()
 
-        // Create the data service with proper settings
         let budgetDataService = BudgetDataService(
             adjustment: goals?.adjustment,
             date: date
@@ -95,9 +94,23 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
         // Load the data
         await budgetDataService.refresh()
 
+        if let budgetService = budgetDataService.budgetService,
+           budgetService.isValid
+        {
+            // Cache successful result for future fallback
+            WidgetDataCache.saveBudget(budgetService)
+            return BudgetEntry(
+                date: date,
+                budgetService: budgetService,
+                configuration: configuration
+            )
+        }
+
+        // Fall back to cached data if fresh data is invalid/empty
+        let cached = WidgetDataCache.loadBudget()
         return BudgetEntry(
             date: date,
-            budgetService: budgetDataService.budgetService,
+            budgetService: budgetDataService.budgetService ?? cached,
             configuration: configuration
         )
     }
