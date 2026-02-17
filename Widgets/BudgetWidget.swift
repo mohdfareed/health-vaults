@@ -43,7 +43,7 @@ struct BudgetWidgetEntryView: View {
                 Image(systemName: "chart.pie.fill")
                     .font(.title)
                     .foregroundColor(.secondary)
-                Text("Loading...")
+                Text("Loading")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

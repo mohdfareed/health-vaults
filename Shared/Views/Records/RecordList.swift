@@ -76,7 +76,7 @@ struct RecordList<T: HealthData>: View {
 
     @ViewBuilder private func loadMoreButton() -> some View {
         if !$records.isLoading && !$records.isExhausted {
-            Button("Load More") {
+            Button("Show More") {
                 Task { await $records.loadNextPage() }
             }
             .frame(maxWidth: .infinity)

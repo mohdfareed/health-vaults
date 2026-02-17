@@ -44,6 +44,7 @@
     "faceid",
     "forwardslash",
     "lefthalf",
+    "macronutrient",
     "Macronutrients",
     "milli",
     "plusminus",
@@ -60,6 +61,6 @@
     "xcodeproj",
     "xmark",
     "xyaxis"
-  ],
+],
   "swift.path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
 }

@@ -6,14 +6,14 @@ import SwiftData
 // MARK: - Macro Nutrients
 // ============================================================================
 
-/// Macro-nutrient types for categorization and display.
+/// Macronutrient types for categorization and display.
 public enum MacroType: String, CaseIterable, Sendable {
     case protein = "protein"
     case carbs = "carbs"
     case fat = "fat"
 }
 
-/// Macro-nutrient breakdown for calorie entries.
+/// Macronutrient breakdown for calorie entries.
 public struct CalorieMacros: Codable, Hashable, Sendable {
     /// Protein content in grams.
     public var protein: Double?
@@ -40,7 +40,7 @@ public struct CalorieMacros: Codable, Hashable, Sendable {
 
     /// Energy value in kilocalories.
     public var calories: Double
-    /// Optional macro-nutrient breakdown.
+    /// Optional macronutrient breakdown.
     public var macros: CalorieMacros?
     /// Alcohol content in standard drinks.
     public var alcohol: Double?

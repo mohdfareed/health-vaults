@@ -55,7 +55,7 @@ public final class MacrosDataService: @unchecked Sendable {
             return
         }
 
-        // Fetch macro-nutrient data
+        // Fetch macronutrient data
         let proteinData = await healthKitService.fetchStatistics(
             for: .protein,
             from: ewmaRange.from, to: ewmaRange.to,
@@ -98,7 +98,7 @@ public final class MacrosDataService: @unchecked Sendable {
             options: .cumulativeSum
         )
 
-        // Create analytics services for each macro-nutrient
+        // Create analytics services for each macronutrient
         // Use 7-day window with 4 data points minimum (lighter than calorie requirements)
         let proteinAnalytics = IntakeAnalyticsService(
             currentIntakes: currentProteinData,

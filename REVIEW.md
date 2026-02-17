@@ -128,6 +128,36 @@ Comprehensive dead code removal:
 
 ---
 
+## Current Session (Feb 17, 2026)
+
+### Objective
+- Run a user-facing copy usability review focused on permission language and misleading phrasing.
+
+### Decisions
+- Updated both Health read and write usage descriptions to accurate, user-centric language.
+- Removed `NSHealthClinicalHealthRecordsShareUsageDescription` from build settings because no clinical-record APIs are used.
+- Kept scope focused on misleading/awkward text only (no feature or flow changes).
+
+### Notes
+- HealthKit usage strings are defined via Xcode build settings in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj#L425-L649).
+- Supported HealthKit types are enumerated in [Shared/Services/HealthKit/HealthKitCore.swift](Shared/Services/HealthKit/HealthKitCore.swift#L7-L29).
+- App-wide HealthKit observation uses those types in [Shared/Services/AppHealthKitObserver.swift](Shared/Services/AppHealthKitObserver.swift#L33-L72).
+- Body fat % read is queried directly in [Shared/Services/HealthData/BudgetDataService.swift](Shared/Services/HealthData/BudgetDataService.swift#L182-L220).
+- HealthKit authorization (read/write sets) is defined in [Shared/Services/HealthKit/Authentication.swift](Shared/Services/HealthKit/Authentication.swift#L12-L35).
+
+### Updated Copy
+- Permission strings in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj#L425-L649)
+- About text in [Shared/Views/AboutView.swift](Shared/Views/AboutView.swift#L20-L38)
+- Settings health footer in [App/SettingsView.swift](App/SettingsView.swift#L43-L49)
+- Widget and list phrasing in [Widgets/MacrosWidget.swift](Widgets/MacrosWidget.swift#L22-L49), [Widgets/BudgetWidget.swift](Widgets/BudgetWidget.swift#L46-L49), and [Shared/Views/Records/RecordList.swift](Shared/Views/Records/RecordList.swift#L79-L83)
+
+### Copy Rationale
+- Permission text should explain user benefit and Apple Health data flow, not only technical read/write verbs.
+- Read copy now clarifies the app can use data aggregated from other apps through Apple Health.
+- Write copy now clarifies entries created in HealthVaults become available to Apple Health and other permitted apps.
+
+---
+
 ## UI Changes (Feb 16, 2026)
 
 ### Goals Page

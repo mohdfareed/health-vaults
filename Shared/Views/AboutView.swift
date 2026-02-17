@@ -22,7 +22,7 @@ public struct AboutView: View {
                                 .fontWeight(.medium)
                             Text(
                                 """
-                                This app integrates with Apple Health to track and manage your health data.
+                                HealthVaults uses Apple Health data to show your metrics, trends, and progress.
                                 """
                             )
                             .font(.footnote)
@@ -34,8 +34,8 @@ public struct AboutView: View {
                     Text(
                         """
                         Health data is stored and managed by Apple Health.
-                        This app does not collect or store personal health information.
-                        You can manage app data and permissions in Apple Health:
+                        HealthVaults does not keep a separate local copy of your health entries.
+                        You can manage access in Apple Health:
                         Settings > Apps > Health > Data Access & Devices > \(AppName)
                         """
                     )

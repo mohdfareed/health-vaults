@@ -19,7 +19,7 @@ struct MacrosWidget: Widget {
             MacrosWidgetEntryView(entry: entry)
         }
         .configurationDisplayName("Macros")
-        .description("Track your daily macro-nutrient intake")
+        .description("Track your daily macronutrient intake")
         .supportedFamilies([.systemSmall, .systemMedium])
     }
 }
@@ -46,7 +46,7 @@ struct MacrosWidgetEntryView: View {
                 Image(systemName: "chart.pie.fill")
                     .font(.title)
                     .foregroundColor(.secondary)
-                Text("Loading...")
+                Text("Loading")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

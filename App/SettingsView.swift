@@ -21,7 +21,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text("General Settings")) {
+                Section(header: Text("General")) {
                     generalSettings
                 }
 
@@ -41,7 +41,7 @@ struct SettingsView: View {
                 } footer: {
                     Text(
                         """
-                        Manage permissions for accessing health data at:
+                        Manage Health access permissions at:
                         Settings > Privacy & Security > Health > \(AppName)
                         """
                     )
