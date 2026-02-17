@@ -88,6 +88,25 @@ public let ForbesConstant = 10.4  // kg
 /// Corresponds to ~34% body fat (population average).
 public let DefaultRho = 7_350.0  // kcal/kg
 
+// MARK: Historical Maintenance Fallback
+// Progressive fetch stages for personal historical TDEE estimation.
+// When recent (28-day) data is sparse, blends toward a personal historical
+// estimate instead of the generic BaselineMaintenance.
+
+/// Progressive fetch stages (days) for historical data.
+/// Starts narrow and expands until enough data is found or the cap is reached.
+/// 2-year cap: BMR declines ~1-2%/year from aging and major life changes
+/// can shift TDEE significantly beyond this horizon.
+public let HistoricalFetchStages: [UInt] = [180, 365, 730]
+
+/// Minimum weight data points for a reliable historical maintenance estimate.
+/// 28 distinct weigh-in days (~1/week for 6 months) ensures a stable regression.
+public let MinHistoricalWeightDataPoints = 28
+
+/// Minimum calorie tracking days for a reliable historical maintenance estimate.
+/// 56 logged days (~50% adherence over 4 months) ensures EWMA convergence.
+public let MinHistoricalCalorieDataPoints = 56
+
 // MARK: - SwiftData Schema
 // ============================================================================
 

@@ -10,11 +10,16 @@ import WidgetKit
 /// Implements weighted linear regression on weight trends to estimate energy balance.
 ///
 /// ## Algorithm
-/// Uses a unified 28-day window with exponential decay weighting:
+/// Uses a configurable window (default 28 days) with exponential decay weighting:
 /// 1. Weighted linear regression on weight data → raw slope (recent data weighted higher)
 /// 2. Raw maintenance = EWMA(intake, α=0.1) - (slope × ρ / 7)
 /// 3. Confidence = (points/minPoints) × (span/windowDays)
-/// 4. Final maintenance = raw × confidence + baseline × (1 - confidence)
+/// 4. Final maintenance = raw × confidence + fallback × (1 - confidence)
+///
+/// ## Two-Tier Fallback
+/// When `fallbackMaintenance` is set to a personal historical estimate (from a wider
+/// data window), the service blends toward the user's own data instead of a generic
+/// population baseline. This provides a personalized starting point for returning users.
 ///
 /// The weighted regression responds faster to recent changes while the long-term
 /// EWMA for intake prevents single-day spikes from affecting maintenance.
@@ -25,6 +30,33 @@ public struct MaintenanceService: Sendable {
     let weights: [Date: Double]
     /// Body fat percentage (0-1), if available from HealthKit.
     let bodyFatPercentage: Double?
+
+    /// Window size for regression and confidence (days). Default: 28.
+    let windowDays: Int
+    /// Fallback maintenance when confidence is low (kcal/day).
+    /// Use a personal historical estimate when available, otherwise BaselineMaintenance.
+    let fallbackMaintenance: Double
+
+    /// Initialize with configurable window and fallback.
+    /// - Parameters:
+    ///   - calories: Intake analytics service for EWMA smoothing
+    ///   - weights: Daily weight data
+    ///   - bodyFatPercentage: Body fat fraction (0-1) for Forbes model, or nil
+    ///   - windowDays: Regression window size in days (default: RegressionWindowDays)
+    ///   - fallbackMaintenance: Fallback TDEE when data is sparse (default: BaselineMaintenance)
+    public init(
+        calories: IntakeAnalyticsService,
+        weights: [Date: Double],
+        bodyFatPercentage: Double?,
+        windowDays: Int = Int(RegressionWindowDays),
+        fallbackMaintenance: Double = BaselineMaintenance
+    ) {
+        self.calories = calories
+        self.weights = weights
+        self.bodyFatPercentage = bodyFatPercentage
+        self.windowDays = windowDays
+        self.fallbackMaintenance = fallbackMaintenance
+    }
 
     /// Energy per unit weight change (kcal/kg).
     /// Computed via Forbes partition model when body fat % is available,
@@ -50,10 +82,10 @@ public struct MaintenanceService: Sendable {
             .filter { !$0.value.isNaN }
     }
 
-    /// Weights within the regression window (last 28 days).
+    /// Weights within the regression window.
     private var windowWeights: [Date: Double] {
         let cal = Calendar.autoupdatingCurrent
-        let cutoff = Date().adding(-Int(RegressionWindowDays), .day, using: cal) ?? Date()
+        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
         return dailyWeights.filter { $0.key >= cutoff }
     }
 
@@ -75,12 +107,12 @@ public struct MaintenanceService: Sendable {
         return range.to.timeIntervalSince(range.from) / 86_400
     }
 
-    /// Confidence factor (0-1) based on data quality within the window.
+    /// Weight data confidence factor (0-1) based on data quality within the window.
     /// Considers both density (points/minPoints) and span (span/windowDays).
     /// Formula: confidence = densityFactor × spanFactor
     public var confidence: Double {
         let densityFactor = min(1.0, Double(dataPointCount) / Double(MinWeightDataPoints))
-        let spanFactor = min(1.0, dataSpanDays / Double(RegressionWindowDays))
+        let spanFactor = min(1.0, dataSpanDays / Double(windowDays))
         return densityFactor * spanFactor
     }
 
@@ -95,31 +127,52 @@ public struct MaintenanceService: Sendable {
         return computeWeightedSlope * 7
     }
 
-    /// Raw maintenance estimate before confidence blending (kcal/day).
+    // MARK: - Independent Component Blending
+
+    /// Intake estimate, blended toward fallback based on calorie data confidence.
+    /// When calorie data is sparse, blends toward the fallback (personal history or baseline).
+    /// When no calorie data exists at all, returns the fallback directly.
+    private var blendedIntake: Double {
+        guard let smoothed = calories.longTermSmoothedIntake else {
+            return fallbackMaintenance
+        }
+        return smoothed * calories.confidence + fallbackMaintenance * (1 - calories.confidence)
+    }
+
+    /// Weight slope blended toward 0 (stable weight) based on weight data confidence.
+    /// When weight data is sparse, assumes weight is stable (slope = 0).
+    private var blendedSlope: Double {
+        return weightSlope * confidence
+    }
+
+    /// Raw maintenance estimate before component blending (kcal/day).
     /// Uses long-term EWMA (α=0.1) to ignore single-day intake spikes.
     public var rawMaintenance: Double {
         guard let smoothed = calories.longTermSmoothedIntake else {
-            return BaselineMaintenance
+            return fallbackMaintenance
         }
-        // M = intake - (slope × ρ / 7)
-        // Use clamped slope to prevent physiologically impossible values
         let energyImbalance = weightSlope * rho / 7.0
         return smoothed - energyImbalance
     }
 
-    /// Maintenance estimate (kcal/day), confidence-blended toward baseline.
-    /// Only the final output is blended, not intermediate values.
-    /// Formula: M = raw × confidence + baseline × (1 - confidence)
+    /// Maintenance estimate (kcal/day) with independent component blending.
+    /// Each component fades to its own neutral fallback independently:
+    /// - Intake → fallbackMaintenance (when calorie data is sparse)
+    /// - Slope → 0 (when weight data is sparse, assume stable weight)
+    /// Then: M = blendedIntake - (blendedSlope × ρ / 7)
     public var maintenance: Double {
-        return rawMaintenance * confidence + BaselineMaintenance * (1 - confidence)
+        return blendedIntake - (blendedSlope * rho / 7.0)
     }
 
     /// Whether the maintenance estimate has enough data to be considered valid.
-    /// Requires sufficient data from BOTH weight and calorie sources.
+    /// Valid when either weight OR calorie data meets minimum thresholds.
+    /// Weight-only or calorie-only data still produces a useful estimate
+    /// via independent component blending.
     public var isValid: Bool {
-        return dataPointCount >= MinWeightDataPoints
-            && dataSpanDays >= Double(RegressionWindowDays) * 0.5
-            && calories.isValid
+        let hasWeightData = dataPointCount >= MinWeightDataPoints
+            && dataSpanDays >= Double(windowDays) * 0.5
+        let hasCalorieData = calories.isValid
+        return hasWeightData || hasCalorieData
     }
 
     /// Computes the slope (kg/day) using weighted least-squares linear regression.

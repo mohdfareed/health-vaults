@@ -60,28 +60,11 @@ public struct IntakeAnalyticsService: Sendable {
         return dailyIntakes.filter { $0.key >= cutoff }
     }
 
-    /// Daily intakes with missing days filled using the average of existing values.
-    /// This prevents gaps in data from skewing EWMA calculations.
-    var dailyIntakesWithMissingDays: [Double] {
-        guard let range = intakeDateRange else { return [] }
-
-        let calendar = Calendar.autoupdatingCurrent
-        let average = dailyIntakes.values.average() ?? 0
-        var current = range.from
-        var values: [Double] = []
-
-        // Walk through each day in the range and fill missing days with average
-        while current <= range.to {
-            let floored = current.floored(to: .day, using: calendar) ?? current
-            if let value = dailyIntakes[floored] {
-                values.append(value)
-            } else {
-                values.append(average)
-            }
-            current = current.adding(1, .day, using: calendar) ?? current
-        }
-
-        return values
+    /// Daily intakes sorted chronologically as (date, value) pairs.
+    /// Only includes days with actual data — no gap filling.
+    var sortedDailyIntakes: [(date: Date, value: Double)] {
+        dailyIntakes.sorted { $0.key < $1.key }
+            .map { (date: $0.key, value: $0.value) }
     }
 
     /// Date range covered by historical intake data.
@@ -127,18 +110,19 @@ public struct IntakeAnalyticsService: Sendable {
     }
 
     /// EWMA-smoothed intake using configured alpha (for display, responsive).
-    /// Uses average for missing days to prevent data gaps from skewing results.
+    /// Gap-aware: scales effective alpha by gap size to properly decay across missing days.
     public var smoothedIntake: Double? {
         return computeEWMA(
-            from: dailyIntakesWithMissingDays, alpha: alpha
+            from: sortedDailyIntakes, alpha: alpha
         )
     }
 
     /// Long-term EWMA-smoothed intake using MaintenanceAlpha (for maintenance calc, stable).
     /// Ignores single-day spikes to provide stable baseline for TDEE estimation.
+    /// Gap-aware: scales effective alpha by gap size to properly decay across missing days.
     public var longTermSmoothedIntake: Double? {
         return computeEWMA(
-            from: dailyIntakesWithMissingDays, alpha: MaintenanceAlpha
+            from: sortedDailyIntakes, alpha: MaintenanceAlpha
         )
     }
 
@@ -147,20 +131,30 @@ public struct IntakeAnalyticsService: Sendable {
         return currentIntakes.values.sum()
     }
 
-    /// Computes EWMA from time series data points.
+    /// Computes gap-aware EWMA from dated data points.
+    /// For a gap of n days between consecutive data points, the effective alpha
+    /// is scaled: α_n = 1 - (1 - α)^n. This correctly decays the old smoothed
+    /// value across the gap without fabricating intake data for missing days.
     /// - Parameters:
-    ///   - values: historical values [C₀, C₁, …, Cₜ₋₁] (oldest first)
-    ///   - alpha: EWMA smoothing factor (0 < α < 1)
-    /// - Returns: Sₜ where
-    ///   S₀ = C₀
-    ///   Sᵢ = α·Cᵢ + (1−α)·Sᵢ₋₁
-    func computeEWMA(from values: [Double], alpha: Double) -> Double? {
-        guard !values.isEmpty else { return nil }
-        // Seed with the first data point
-        var smoothed = values[0]
-        // Fold over the rest (last has highest weight)
-        for value in values.dropFirst() {
-            smoothed = alpha * value + (1 - alpha) * smoothed
+    ///   - entries: dated values [(date, value)] sorted oldest first
+    ///   - alpha: base EWMA smoothing factor (0 < α < 1), applied per day
+    /// - Returns: Sₜ where gaps properly decay the previous smoothed value
+    func computeEWMA(from entries: [(date: Date, value: Double)], alpha: Double) -> Double? {
+        guard let first = entries.first else { return nil }
+        let cal = Calendar.autoupdatingCurrent
+
+        var smoothed = first.value
+        var previousDate = first.date
+
+        for entry in entries.dropFirst() {
+            // Calculate gap in days between this entry and the previous one
+            let gap = max(1.0, entry.date.timeIntervalSince(previousDate) / 86_400)
+            // Scale alpha by gap: α_n = 1 - (1 - α)^n
+            // For gap=1 (consecutive days), this equals α (standard EWMA)
+            // For larger gaps, more weight is given to the new value (old value decays more)
+            let effectiveAlpha = 1.0 - pow(1.0 - alpha, gap)
+            smoothed = effectiveAlpha * entry.value + (1.0 - effectiveAlpha) * smoothed
+            previousDate = entry.date
         }
         return smoothed
     }

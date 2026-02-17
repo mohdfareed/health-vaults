@@ -33,15 +33,30 @@ Rolling 7-day window. Only logged days contribute—missing days are excluded, n
 ### Maintenance Estimation
 
 ```
-Maintenance = EWMA(Intake) − (WeightSlope × ρ)
+Maintenance = BlendedIntake − (BlendedSlope × ρ / 7)
 ```
 
+Each component blends independently toward a neutral fallback based on its own data confidence:
+
+- **BlendedIntake**: `EWMA(Intake) × calorieConf + fallback × (1 − calorieConf)`
+  - Falls back to personal historical estimate, or 2200 kcal baseline if no history
+- **BlendedSlope**: `WeightSlope × weightConf`
+  - Falls back to 0 (stable weight assumed when weight data is sparse)
 - **WeightSlope**: Weighted linear regression over 28 days (decay = 0.9/day)
 - **ρ (energy density)**: Personalized via Forbes partition model when body fat % is available from HealthKit; defaults to 7350 kcal/kg
 - **Forbes model**: `p = FM / (FM + 10.4)`, then `ρ = p × 9440 + (1−p) × 1816` kcal/kg
-- **Confidence blending**: Interpolates toward 2200 kcal baseline when data is sparse
+- **EWMA**: Gap-aware — scales effective alpha by gap size: `α_n = 1 − (1−α)^n` for n-day gaps. No fabricated data for missing days.
 
-Requires ≥7 weight measurements and ≥14 calorie entries over ≥14 days for full confidence.
+#### Historical Fallback
+
+When recent (28-day) data is sparse, the fallback maintenance is estimated from personal historical data via progressive fetching:
+
+1. Query 6 months of HealthKit data
+2. If insufficient (< 28 weight days or < 56 calorie days), expand to 1 year
+3. If still insufficient, expand to 2 years
+4. If no sufficient history exists, falls back to 2200 kcal/day baseline
+
+This ensures returning users get a personalized estimate even after tracking gaps.
 
 ## Architecture
 

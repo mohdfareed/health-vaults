@@ -31,7 +31,7 @@ import WidgetKit
                 )
 
                 // Fallback to in-memory container
-                logger.warning("Falling back to in-memory container")
+                self.logger.warning("Falling back to in-memory container")
                 self.container = try! .init(
                     for: AppSchema.schema,
                     configurations: .init(isStoredInMemoryOnly: true)

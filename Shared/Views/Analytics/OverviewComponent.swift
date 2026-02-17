@@ -163,7 +163,7 @@ public struct OverviewComponent: View {
             if budgetDataService.budgetService?.weight.isValid != true {
                 VStack(alignment: .leading) {
                     Text(
-                        "Log weight and calories for 2+ weeks to calculate your maintenance. Until then, using 2000 kcal baseline."
+                        "Log weight and calories regularly to improve your maintenance estimate. Weight data enables trend-based calculations."
                     )
                     HStack(alignment: .firstTextBaseline) {
                         Image.maintenance.foregroundStyle(Color.calories)

@@ -70,7 +70,7 @@ public final class BudgetDataService: @unchecked Sendable {
         let rollingRangeFrom = rolling7DaysAgo
         let rollingRangeTo = yesterday.ceiled(to: .day, using: cal) ?? yesterday
 
-        // Fetch data
+        // Fetch data for primary 28-day window and rolling credit
 
         let calorieData = await healthKitService.fetchStatistics(
             for: .dietaryCalories,
@@ -79,7 +79,6 @@ public final class BudgetDataService: @unchecked Sendable {
             options: .cumulativeSum
         )
 
-        // Fetch rolling 7-day intake for credit calculation
         let rollingCalorieData = await healthKitService.fetchStatistics(
             for: .dietaryCalories,
             from: rollingRangeFrom, to: rollingRangeTo,
@@ -111,16 +110,25 @@ public final class BudgetDataService: @unchecked Sendable {
         // Fetch most recent body fat percentage from HealthKit
         let bodyFatData = await fetchLatestBodyFatPercentage()
 
-        // Create analytics services
+        // Compute personal historical fallback maintenance via progressive fetch.
+        // Expands the query window (6mo → 1yr → 2yr) until enough data is found.
+        let historicalFallback = await computeHistoricalMaintenance(
+            today: today, currentRange: currentRange,
+            currentCalorieData: currentCalorieData,
+            bodyFatPercentage: bodyFatData, calendar: cal
+        )
 
+        // Create primary 28-day maintenance service, blending toward
+        // personal historical estimate (or BaselineMaintenance if no history)
         let weightAnalytics = MaintenanceService(
             calories: IntakeAnalyticsService(
                 currentIntakes: currentCalorieData,
                 intakes: maintenanceCalorieData,
-                alpha: 0.25  // 7 days - for smoothed intake in maintenance calc
+                alpha: 0.25
             ),
             weights: weightData,
-            bodyFatPercentage: bodyFatData
+            bodyFatPercentage: bodyFatData,
+            fallbackMaintenance: historicalFallback
         )
 
         // Create budget service with rolling 7-day credit and weekly repayment
@@ -128,7 +136,7 @@ public final class BudgetDataService: @unchecked Sendable {
             calories: IntakeAnalyticsService(
                 currentIntakes: currentCalorieData,
                 intakes: calorieData,
-                alpha: 0.25  // 7 days
+                alpha: 0.25
             ),
             weight: weightAnalytics,
             rollingIntakes: rollingCalorieData,
@@ -147,24 +155,23 @@ public final class BudgetDataService: @unchecked Sendable {
         logger.debug("Budget data refreshed")
     }
 
-    /// Start observing HealthKit changes for automatic updates
+    /// Start observing HealthKit changes for automatic updates.
+    /// Observation window covers the widest historical fetch stage to detect
+    /// changes in data that could affect the historical maintenance fallback.
     public func startObserving(widgetId: String = "BudgetDataService") {
-        let yesterday = date.adding(-1, .day, using: .autoupdatingCurrent)
-        guard let currentRange = date.dateRange(using: .autoupdatingCurrent),
-            let fittingRange = yesterday?.dateRange(
-                by: RegressionWindowDays, using: .autoupdatingCurrent)
+        let cal = Calendar.autoupdatingCurrent
+        let maxStage = HistoricalFetchStages.last ?? RegressionWindowDays
+        guard let currentRange = date.dateRange(using: cal),
+            let historicalStart = date.adding(-Int(maxStage), .day, using: cal)
         else {
             logger.error("Failed to calculate date ranges for observation")
             return
         }
 
-        let startDate = fittingRange.from
-        let endDate = currentRange.to
-
         // Use existing HealthKit observer infrastructure
         healthKitService.startObserving(
             for: widgetId, dataTypes: [.dietaryCalories, .bodyMass],
-            from: startDate, to: endDate
+            from: historicalStart, to: currentRange.to
         ) { [weak self] in
             Task {
                 await self?.refresh()
@@ -210,5 +217,78 @@ public final class BudgetDataService: @unchecked Sendable {
             }
             healthKitService.store.execute(query)
         }
+    }
+
+    // MARK: - Historical Maintenance
+
+    /// Computes a personal historical maintenance estimate via progressive fetching.
+    /// Queries progressively wider date ranges (6mo → 1yr → 2yr) until enough data
+    /// is found (≥28 weight days AND ≥56 calorie days), then builds a
+    /// `MaintenanceService` over that data. Returns `BaselineMaintenance` if no
+    /// sufficient historical data exists.
+    private func computeHistoricalMaintenance(
+        today: Date, currentRange: (from: Date, to: Date),
+        currentCalorieData: [Date: Double],
+        bodyFatPercentage: Double?,
+        calendar cal: Calendar
+    ) async -> Double {
+        for stage in HistoricalFetchStages {
+            guard let stageStart = today.adding(-Int(stage), .day, using: cal)
+            else { continue }
+
+            // Fetch historical data for this stage
+            let historicalCalories = await healthKitService.fetchStatistics(
+                for: .dietaryCalories,
+                from: stageStart, to: currentRange.to,
+                interval: .daily,
+                options: .cumulativeSum
+            )
+
+            let historicalWeights = await healthKitService.fetchStatistics(
+                for: .bodyMass,
+                from: stageStart, to: currentRange.to,
+                interval: .daily,
+                options: .discreteAverage
+            )
+
+            // Count actual data days (not calendar days)
+            let calorieDataDays = historicalCalories.count
+            let weightDataDays = historicalWeights.count
+
+            // Check if we have enough data at this stage
+            guard calorieDataDays >= MinHistoricalCalorieDataPoints,
+                  weightDataDays >= MinHistoricalWeightDataPoints
+            else {
+                logger.debug(
+                    "Historical stage \(stage)d: \(weightDataDays) weight, \(calorieDataDays) calorie days (insufficient)"
+                )
+                continue  // Expand to next stage
+            }
+
+            // Build historical maintenance service over the wider window
+            let historicalService = MaintenanceService(
+                calories: IntakeAnalyticsService(
+                    currentIntakes: currentCalorieData,
+                    intakes: historicalCalories,
+                    alpha: 0.25,
+                    windowDays: Int(stage),
+                    minDataPoints: MinHistoricalCalorieDataPoints
+                ),
+                weights: historicalWeights,
+                bodyFatPercentage: bodyFatPercentage,
+                windowDays: Int(stage),
+                fallbackMaintenance: BaselineMaintenance
+            )
+
+            let historicalMaintenance = Int(historicalService.maintenance)
+            let conf = String(format: "%.2f", historicalService.confidence)
+            logger.info(
+                "Historical maintenance from \(stage)d window: \(historicalMaintenance) kcal/day (conf: \(conf), \(weightDataDays)w \(calorieDataDays)c days)"
+            )
+            return historicalService.maintenance
+        }
+
+        logger.info("No sufficient historical data found, using baseline: \(Int(BaselineMaintenance)) kcal/day")
+        return BaselineMaintenance
     }
 }

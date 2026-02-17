@@ -67,14 +67,17 @@ public struct BudgetService: Sendable {
     }
 
     /// Unified confidence factor (0-1) combining weight and calorie data quality.
-    /// Budget estimates are only as reliable as the weakest data source.
+    /// Uses the higher confidence since each component blends independently — having
+    /// good data in either source produces a useful budget estimate.
     public var confidence: Double {
-        return min(weight.confidence, calories.confidence)
+        return max(weight.confidence, calories.confidence)
     }
 
-    /// Whether budget calculations have sufficient data from both sources.
-    /// Requires valid weight data (for maintenance) AND valid calorie data (for smoothing).
+    /// Whether budget calculations have sufficient data to be useful.
+    /// With independent component blending, either weight OR calorie data is sufficient:
+    /// calorie-only → maintenance ≈ intake (assumes stable weight)
+    /// weight-only → maintenance adjusts baseline by weight trend
     public var isValid: Bool {
-        return weight.isValid && calories.isValid
+        return weight.isValid
     }
 }
