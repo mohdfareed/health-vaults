@@ -93,11 +93,13 @@ public struct RecordDefinition {
 
     let formView: (Binding<any HealthData>) -> AnyView
     let rowView: (any HealthData) -> AnyView
+    let aggregateView: (Double) -> AnyView
 
-    init<Data: HealthData, FormContent: View, RowContent: View>(
+    init<Data: HealthData, FormContent: View, RowContent: View, AggregateContent: View>(
         title: String.LocalizationValue, icon: Image, color: Color,
         @ViewBuilder form: @escaping (Binding<Data>) -> FormContent,
-        @ViewBuilder row: @escaping (Data) -> RowContent
+        @ViewBuilder row: @escaping (Data) -> RowContent,
+        @ViewBuilder aggregate: @escaping (Double) -> AggregateContent
     ) {
         self.title = title
         self.icon = icon
@@ -111,6 +113,7 @@ public struct RecordDefinition {
             return AnyView(form(typedBinding))
         }
         self.rowView = { record in AnyView(row(record as! Data)) }
+        self.aggregateView = { value in AnyView(aggregate(value)) }
     }
 }
 
@@ -121,25 +124,32 @@ extension HealthDataModel {
     /// Creates the appropriate form for this data model type
     @MainActor @ViewBuilder
     public func createForm(
-        formType: RecordFormType, record: (any HealthData)? = nil
+        formType: RecordFormType, record: (any HealthData)? = nil,
+        defaultDate: Date? = nil
     ) -> some View {
         switch self {
         case .calorie:
+            let initial = (record as? DietaryCalorie) ?? DietaryCalorie()
+            let _ = defaultDate.map { initial.date = $0 }
             CalorieFormView(
                 formType: formType,
-                initialRecord: (record as? DietaryCalorie) ?? DietaryCalorie(),
+                initialRecord: initial,
                 dataModel: self
             )
         case .weight:
+            let initial = (record as? Weight) ?? Weight()
+            let _ = defaultDate.map { initial.date = $0 }
             WeightFormView(
                 formType: formType,
-                initialRecord: (record as? Weight) ?? Weight(),
+                initialRecord: initial,
                 dataModel: self
             )
         case .bodyFat:
+            let initial = (record as? BodyFatPercentage) ?? BodyFatPercentage()
+            let _ = defaultDate.map { initial.date = $0 }
             BodyFatFormView(
                 formType: formType,
-                initialRecord: (record as? BodyFatPercentage) ?? BodyFatPercentage(),
+                initialRecord: initial,
                 dataModel: self
             )
         }

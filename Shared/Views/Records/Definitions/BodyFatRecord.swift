@@ -30,6 +30,15 @@ struct BodyFatFieldDefinition: FieldDefinition {
         icon: nil, tint: nil,
         format: BodyFatFieldDefinition().formatter
     )
+} aggregate: { value in
+    ValueView(
+        measurement: .init(
+            baseValue: .constant(value),
+            definition: UnitDefinition.bodyFat
+        ),
+        icon: nil, tint: nil,
+        format: BodyFatFieldDefinition().formatter
+    )
 }
 
 struct BodyFatFields: View {

@@ -273,3 +273,25 @@ Comprehensive dead code removal:
 - Macros remaining value now uses `label: "left"` (matching calories) instead of showing the unit symbol.
 - Dashboard legend shorthand updated from `R` to `Left` for immediate readability.
 - Dashboard legend copy further simplified to just `Left`.
+
+### Record List Bucketing (same session)
+- Added period picker (All / Day / Week / Month) to record lists via segmented control.
+- Records grouped into `RecordBucket<T>` with calendar-aware intervals via `AppLocale.calendar`.
+- Each bucket shows an aggregate value (sum for calories, average for weight/body fat) and record count.
+- Tapping a bucket navigates to a `BucketDetailView` showing the aggregate summary and individual records.
+- Added `AggregationType` enum (`.sum`, `.average`) to `HealthDataModel`.
+- Added `value: Double` property to `HealthData` protocol for generic aggregation.
+- Added `aggregateView: (Double) -> AnyView` to `RecordDefinition` — each data type provides a `ValueView` rendering the aggregate in its localized unit.
+- Empty state uses `ContentUnavailableView` as a list `.overlay` (Apple's recommended pattern) — picker hidden when empty.
+- All changes validated with `swift build`.
+
+**Files changed:**
+- `Shared/Models/HealthData.swift` — `AggregationType`, `HealthData.value`, `HealthDataModel.aggregation`
+- `Shared/Models/DataModels/Calorie.swift` — `value` conformance
+- `Shared/Models/DataModels/Weight.swift` — `value` conformance
+- `Shared/Models/DataModels/BodyFat.swift` — `value` conformance
+- `Shared/Views/Records/RecordList.swift` — `RecordPeriod`, `RecordBucket`, period picker, bucketed list, bucket detail
+- `Shared/Views/Records/RecordDefinition.swift` — `aggregateView` property + init parameter
+- `Shared/Views/Records/Definitions/CalorieRecord.swift` — `aggregate:` closure
+- `Shared/Views/Records/Definitions/WeightRecord.swift` — `aggregate:` closure
+- `Shared/Views/Records/Definitions/BodyFatRecord.swift` — `aggregate:` closure

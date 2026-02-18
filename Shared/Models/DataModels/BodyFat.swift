@@ -8,6 +8,8 @@ import Foundation
 
     /// Body fat value in percentage points (0...100).
     public var percentage: Double
+    /// The primary numeric value for aggregation.
+    public var value: Double { percentage }
 
     public init(
         _ percentage: Double,

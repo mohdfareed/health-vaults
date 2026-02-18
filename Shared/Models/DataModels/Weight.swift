@@ -8,6 +8,8 @@ import Foundation
 
     /// The weight value.
     public var weight: Double
+    /// The primary numeric value for aggregation.
+    public var value: Double { weight }
 
     public init(
         _ weight: Double,

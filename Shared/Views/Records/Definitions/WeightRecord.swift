@@ -30,6 +30,15 @@ struct WeightFieldDefinition: FieldDefinition {
         icon: nil, tint: nil,
         format: WeightFieldDefinition().formatter
     )
+} aggregate: { value in
+    ValueView(
+        measurement: .init(
+            baseValue: .constant(value),
+            definition: UnitDefinition.weight
+        ),
+        icon: nil, tint: nil,
+        format: WeightFieldDefinition().formatter
+    )
 }
 
 struct WeightFields: View {

@@ -122,7 +122,8 @@ struct MacroValueView: View {
                     definition: UnitDefinition.macro
                 ),
                 icon: field.icon, tint: field.tint,
-                format: field.formatter
+                format: field.formatter,
+                label: ""
             )
             .textScale(.secondary)
             .imageScale(.small)
@@ -143,7 +144,8 @@ struct AlcoholValueView: View {
                     definition: UnitDefinition.alcohol
                 ),
                 icon: field.icon, tint: field.tint,
-                format: field.formatter
+                format: field.formatter,
+                label: ""
             )
             .textScale(.secondary)
             .imageScale(.small)

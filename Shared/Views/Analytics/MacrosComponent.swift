@@ -240,7 +240,7 @@ private struct MacroBudgetContent: View {
                 definition: UnitDefinition<UnitMass>.macro
             ),
             icon: nil, tint: nil, format: format,
-            label: widgetFamily == .systemSmall ? "left" : nil
+            label: "left"
         )
         .fontWeight(.bold)
         .font(widgetFamily == .systemSmall ? .title : .title2)
@@ -263,25 +263,17 @@ private struct MacroBudgetContent: View {
                 .font(widgetFamily == .systemSmall ? .headline : .subheadline)
                 .foregroundColor(.secondary)
 
-            if widgetFamily == .systemSmall {
-                ValueView(
-                    measurement: .init(
-                        baseValue: .constant(budget),
-                        definition: UnitDefinition<UnitMass>.macro
-                    ),
-                    icon: nil, tint: nil, format: format
-                )
-                .fontWeight(.bold)
-                .font(.headline)
-                .foregroundColor(.secondary)
-                .contentTransition(.numericText(value: budget ?? 0))
-            } else {
-                Text(budget ?? 0, format: format)
-                    .fontWeight(.bold)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .contentTransition(.numericText(value: budget ?? 0))
-            }
+            ValueView(
+                measurement: .init(
+                    baseValue: .constant(budget),
+                    definition: UnitDefinition<UnitMass>.macro
+                ),
+                icon: nil, tint: nil, format: format
+            )
+            .fontWeight(.bold)
+            .font(widgetFamily == .systemSmall ? .headline : .subheadline)
+            .foregroundColor(.secondary)
+            .contentTransition(.numericText(value: budget ?? 0))
         }
     }
 

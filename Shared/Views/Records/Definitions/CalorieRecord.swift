@@ -154,6 +154,15 @@ let calorieRecordDefinition = RecordDefinition(
             )
         }
     }
+} aggregate: { value in
+    ValueView(
+        measurement: .init(
+            baseValue: .constant(value),
+            definition: UnitDefinition.calorie
+        ),
+        icon: nil, tint: nil,
+        format: CalorieFieldDefinition().formatter
+    )
 }
 
 struct CalorieFields: View {

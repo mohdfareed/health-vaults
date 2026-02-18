@@ -4,9 +4,30 @@ import SwiftData
 // MARK: - Health Data Types
 // ============================================================================
 
+/// Aggregation strategy for bucketed record views.
+public enum AggregationType: String, CaseIterable {
+    case sum, average
+
+    var label: String {
+        switch self {
+        case .sum: "Total"
+        case .average: "Average"
+        }
+    }
+}
+
 /// Supported health data model types for the app.
 public enum HealthDataModel: CaseIterable, Identifiable {
     case calorie, weight, bodyFat
+
+    /// The aggregation strategy for this data type.
+    public var aggregation: AggregationType {
+        switch self {
+        case .calorie: .sum
+        case .weight: .average
+        case .bodyFat: .average
+        }
+    }
 
     /// The associated data model type.
     var dataType: any HealthData.Type {
@@ -62,6 +83,8 @@ public protocol HealthData: Identifiable, Observable {
     var source: DataSource { get }
     /// Timestamp when the data was recorded.
     var date: Date { get set }
+    /// The primary numeric value for aggregation.
+    var value: Double { get }
     /// Default initializer for new entries.
     init()
 }

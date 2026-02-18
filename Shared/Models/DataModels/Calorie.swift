@@ -40,6 +40,8 @@ public struct CalorieMacros: Codable, Hashable, Sendable {
 
     /// Energy value in kilocalories.
     public var calories: Double
+    /// The primary numeric value for aggregation.
+    public var value: Double { calories }
     /// Optional macronutrient breakdown.
     public var macros: CalorieMacros?
     /// Alcohol content in standard drinks.
