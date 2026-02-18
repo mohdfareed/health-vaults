@@ -317,7 +317,7 @@ public struct OverviewComponent: View {
                 Text(
                     budgetDataService.budgetService?.weight.isValid == true
                         ? "Ready"
-                        : "Calibrating"
+                        : "Calibrating."
                 )
                 .foregroundStyle(.secondary)
             }

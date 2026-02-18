@@ -55,16 +55,26 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .scrollDismissesKeyboard(.interactively)
             .resetAlert(isPresented: $reset)
+            .animation(.smooth(duration: 0.35), value: colorScheme)
         }
     }
 
     @ViewBuilder var generalSettings: some View {
+        let animatedThemeBinding = Binding(
+            get: { self.theme },
+            set: { newTheme in
+                withAnimation(.smooth) {
+                    self.theme = newTheme
+                }
+            }
+        )
+
         Picker(
             "Theme",
             systemImage: colorScheme == .light
                 ? "sun.max.fill"
                 : "moon.fill",
-            selection: self.$theme,
+            selection: animatedThemeBinding,
             content: {
                 ForEach(AppTheme.allCases, id: \.self) { theme in
                     if theme != .system {
@@ -80,8 +90,6 @@ struct SettingsView: View {
             }
         ) { Text(self.theme.localized).fixedSize() }
         .frame(maxHeight: 8)
-        .contentTransition(.identity)
-        .transaction { $0.animation = nil }
 
         Picker(
             "Measurements", systemImage: "ruler",
@@ -105,8 +113,6 @@ struct SettingsView: View {
             }
         }
         .frame(maxHeight: 8)
-        .contentTransition(.identity)
-        .transaction { $0.animation = nil }
 
         Picker(
             "First Weekday", systemImage: "calendar",
@@ -129,8 +135,6 @@ struct SettingsView: View {
             }
         }
         .frame(maxHeight: 8)
-        .contentTransition(.identity)
-        .transaction { $0.animation = nil }
     }
 }
 

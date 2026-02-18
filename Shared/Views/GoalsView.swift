@@ -166,7 +166,7 @@ struct CalorieGoalFields: View {
         } header: {
             Text("Maintenance")
         } footer: {
-            Text("Estimated from your weight trend")
+            Text("Estimated from your weight trend.")
         }
         .onAppear {
             budgetDataService.startObserving(widgetId: "CalorieGoalView")
@@ -195,7 +195,7 @@ struct CalorieGoalFields: View {
         } header: {
             Text("Goal Adjustment")
         } footer: {
-            Text("Surplus or deficit applied to maintenance")
+            Text("Surplus or deficit applied to maintenance.")
         }
 
         Section {
@@ -212,7 +212,7 @@ struct CalorieGoalFields: View {
         } header: {
             Text("Budget")
         } footer: {
-            Text("Daily target = maintenance + adjustment")
+            Text("Daily target = maintenance + adjustment.")
         }
     }
 }
@@ -281,7 +281,7 @@ struct MacrosGoalFields: View {
         } header: {
             Text("Macros Breakdown")
         } footer: {
-            Text("Percentage of your daily calorie budget")
+            Text("Percentage of your daily calorie budget.")
         }
         .onAppear {
             budgetDataService.startObserving(widgetId: "MacrosGoalView")
@@ -313,7 +313,7 @@ struct MacrosGoalFields: View {
         } header: {
             Text("Daily Budget")
         } footer: {
-            Text("Derived from calorie budget and macro percentages")
+            Text("Derived from calorie budget and macro percentages.")
         }
     }
 
