@@ -326,7 +326,7 @@ private struct BucketDetailView<T: HealthData>: View {
 
     var body: some View {
         List {
-            Section {
+            Section("Summary") {
                 LabeledContent {
                     definition.aggregateView(bucket.aggregate)
                 } label: {
@@ -350,7 +350,7 @@ private struct BucketDetailView<T: HealthData>: View {
                 }
             }
 
-            Section {
+            Section("Records") {
                 ForEach(bucket.records) { record in
                     RecordListRow(record: record, definition: definition)
                         .swipeActions {

@@ -5,11 +5,13 @@ import Foundation
 
 extension DietaryCalorie {
     /// The amount of calories calculated from the macros or alcohol content.
+    /// Returns `nil` when all macro/alcohol inputs are zero (nothing to compute from).
     func calculatedCalories() -> Double? {
         let p = self.macros?.protein ?? 0
         let f = self.macros?.fat ?? 0
         let c = self.macros?.carbs ?? 0
         let a = self.alcohol ?? 0
+        guard p + f + c + a > 0 else { return nil }
         return ((p + c) * 4) + (f * 9) + (a * 98)
     }
 

@@ -258,6 +258,16 @@ struct MacrosGoalFields: View {
     var body: some View {
         Section {
             RecordRow(
+                field: BudgetFieldDefinition(),
+                value: .constant(baseBudget),
+                isInternal: false
+            )
+        } header: {
+            Text("Calorie Budget")
+        }
+
+        Section {
+            RecordRow(
                 field: ProteinPercentDefinition().withComputed {
                     100 - (goals.macros?.carbs ?? 0) - (goals.macros?.fat ?? 0)
                 },

@@ -138,7 +138,7 @@ private struct MediumBudgetLayout: View {
             if !isWidget && !budget.weight.isValid {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Image.maintenance
-                        .foregroundStyle(Color.calories)
+                        .foregroundStyle(Color.maintenance)
                         .symbolEffect(
                             .rotate.byLayer,
                             options: .repeat(.periodic(delay: 4))
@@ -209,7 +209,7 @@ private func BudgetContent(data: BudgetService, isWidget: Bool = false) -> some 
         // Disable animation in widget context to avoid battery drain and visual artifacts
         if isWidget {
             Image.maintenance
-                .foregroundColor(.calories)
+                .foregroundColor(.maintenance)
                 .font(.subheadline)
                 .frame(width: 18, height: 18, alignment: .center)
                 .padding(.trailing, 8)
@@ -221,7 +221,7 @@ private func BudgetContent(data: BudgetService, isWidget: Bool = false) -> some 
                         ? .nonRepeating
                         : .repeat(.periodic(delay: 5))
                 )
-                .foregroundColor(.calories)
+                .foregroundColor(.maintenance)
                 .font(.subheadline)
                 .frame(width: 18, height: 18, alignment: .center)
                 .padding(.trailing, 8)

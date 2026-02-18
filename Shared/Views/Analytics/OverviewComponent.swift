@@ -116,30 +116,6 @@ public struct OverviewComponent: View {
 
             Section {
                 calorieValue(
-                    budgetDataService.budgetService?.weight.maintenance,
-                    title: "Maintenance",
-                    icon: Image.calories,
-                    subtitle: "kcal/day"
-                )
-                calorieValue(
-                    adjustment,
-                    title: "Goal Adjustment",
-                    icon: Image(systemName: "plusminus.circle"),
-                    subtitle: "kcal/day"
-                )
-                calorieValue(
-                    budgetDataService.budgetService?.baseBudget,
-                    title: "Base Budget",
-                    icon: Image.calories,
-                    subtitle: "kcal/day",
-                    description: "Maintenance + goal adjustment"
-                )
-            } header: {
-                Text("Budget Input")
-            }
-
-            Section {
-                calorieValue(
                     budgetDataService.budgetService?.calories.currentIntake,
                     title: "Today's Intake",
                     icon: Image.calories,
@@ -174,9 +150,37 @@ public struct OverviewComponent: View {
 
             Section {
                 calorieValue(
+                    budgetDataService.budgetService?.weight.maintenance,
+                    title: "Maintenance",
+                    icon: Image.maintenance,
+                    tint: .maintenance,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    adjustment,
+                    title: "Goal Adjustment",
+                    icon: Image.adjustment,
+                    tint: .adjustment,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.baseBudget,
+                    title: "Base Budget",
+                    icon: Image.budget,
+                    tint: .budget,
+                    subtitle: "kcal/day",
+                    description: "Maintenance + goal adjustment"
+                )
+            } header: {
+                Text("Budget Input")
+            }
+
+            Section {
+                calorieValue(
                     budgetDataService.budgetService.map { $0.credit },
                     title: "Credit",
-                    icon: Image.calories,
+                    icon: Image.credit,
+                    tint: .credit,
                     subtitle: "kcal/day",
                     description: "Weekly over/under balance"
                 )
@@ -187,14 +191,16 @@ public struct OverviewComponent: View {
                 calorieValue(
                     budgetDataService.budgetService?.dailyAdjustment,
                     title: "Credit Adjustment",
-                    icon: Image.calories,
+                    icon: Image.credit,
+                    tint: .credit,
                     subtitle: "kcal/day",
                     description: "Credit ÷ days left (±500 cap)"
                 )
                 calorieValue(
                     budgetDataService.budgetService?.budget,
                     title: "Today's Budget",
-                    icon: Image.calories,
+                    icon: Image.budget,
+                    tint: .budget,
                     subtitle: "kcal/day",
                     description: "Base budget + credit adjustment"
                 )
@@ -254,7 +260,8 @@ public struct OverviewComponent: View {
                 calorieValue(
                     macrosDataService.macrosService?.calories?.baseBudget,
                     title: "Base Budget",
-                    icon: Image.calories,
+                    icon: Image.budget,
+                    tint: .budget,
                     subtitle: "kcal/day"
                 )
             } header: {
@@ -512,6 +519,7 @@ public struct OverviewComponent: View {
         _ value: Double?,
         title: String.LocalizationValue,
         icon: Image? = nil,
+        tint: Color = .calories,
         subtitle: String? = nil,
         description: String? = nil
     ) -> some View {
@@ -526,7 +534,7 @@ public struct OverviewComponent: View {
             OverviewDetailLabel(
                 title: String(localized: title),
                 icon: icon,
-                tint: .calories,
+                tint: tint,
                 unitText: subtitle,
                 description: description
             )

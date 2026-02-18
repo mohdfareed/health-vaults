@@ -24,9 +24,8 @@ struct CalorieAdjustmentFieldDefinition: FieldDefinition {
     typealias Unit = UnitEnergy
 
     let title: String.LocalizationValue = "Adjustment"
-    let icon = Image(systemName: "plusminus.circle")
-        .symbolRenderingMode(.hierarchical)
-    let tint = Color.indigo
+    let icon = Image.adjustment
+    let tint = Color.adjustment
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { _ in true }
 
@@ -42,7 +41,7 @@ struct MaintenanceFieldDefinition: FieldDefinition {
 
     let title: String.LocalizationValue = "Maintenance"
     let icon = Image.maintenance
-    let tint = Color.calories
+    let tint = Color.maintenance
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { _ in true }
 
@@ -58,7 +57,7 @@ struct WeeklyMaintenanceFieldDefinition: FieldDefinition {
 
     let title: String.LocalizationValue = "Weekly Maintenance"
     let icon = Image.maintenance
-    let tint = Color.calories
+    let tint = Color.maintenance
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { _ in true }
 
@@ -73,9 +72,8 @@ struct WeeklyCalorieAdjustmentFieldDefinition: FieldDefinition {
     typealias Unit = UnitEnergy
 
     let title: String.LocalizationValue = "Weekly Adjustment"
-    let icon = Image(systemName: "plusminus.circle")
-        .symbolRenderingMode(.hierarchical)
-    let tint = Color.indigo
+    let icon = Image.adjustment
+    let tint = Color.adjustment
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { _ in true }
 
@@ -90,8 +88,8 @@ struct BudgetFieldDefinition: FieldDefinition {
     typealias Unit = UnitEnergy
 
     let title: String.LocalizationValue = "Budget"
-    let icon = Image(systemName: "target")
-    let tint = Color.calories
+    let icon = Image.budget
+    let tint = Color.budget
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { $0 >= 0 }
 
@@ -106,8 +104,8 @@ struct WeeklyBudgetFieldDefinition: FieldDefinition {
     typealias Unit = UnitEnergy
 
     let title: String.LocalizationValue = "Weekly Budget"
-    let icon = Image(systemName: "target")
-    let tint = Color.calories
+    let icon = Image.budget
+    let tint = Color.budget
     let formatter = FloatingPointFormatStyle<Double>.number.precision(.fractionLength(0))
     let validator: (@Sendable (Double) -> Bool)? = { $0 >= 0 }
 

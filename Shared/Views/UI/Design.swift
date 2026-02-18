@@ -15,6 +15,12 @@ extension Color {
     public static var weight: Color { .purple }
     public static var bodyFat: Color { .weight }
 
+    // Calorie Sub-Concepts
+    public static var maintenance: Color { .calories }
+    public static var adjustment: Color { .indigo }
+    public static var budget: Color { .teal }
+    public static var credit: Color { .green }
+
     // Dietary Energy
     public static var macros: Color { .indigo }
     public static var protein: Color {
@@ -58,6 +64,11 @@ extension Image {
         .init(systemName: "flame.gauge.open")
             .symbolRenderingMode(.hierarchical)
     }
+    public static var adjustment: Image {
+        .init(systemName: "plusminus.circle")
+            .symbolRenderingMode(.hierarchical)
+    }
+    public static var budget: Image { .init(systemName: "target") }
     public static var credit: Image {
         .init(systemName: "creditcard.circle")
             .symbolRenderingMode(.hierarchical)

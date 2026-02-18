@@ -285,13 +285,35 @@ Comprehensive dead code removal:
 - Empty state uses `ContentUnavailableView` as a list `.overlay` (Apple's recommended pattern) — picker hidden when empty.
 - All changes validated with `swift build`.
 
+### Icon/Color Consistency Audit (same session)
+- Centralized `Image.adjustment` (plusminus.circle, hierarchical) and `Image.budget` (target) in Design.swift.
+- Fixed `CalorieAdjustmentFieldDefinition` and `WeeklyCalorieAdjustmentFieldDefinition` tint: `.indigo` → `.calories` for domain consistency.
+- Fixed `BudgetFieldDefinition` and `WeeklyBudgetFieldDefinition` icons: inline `Image(systemName:)` → `Image.budget`.
+- Fixed OverviewComponent calories section icons to match field definitions:
+  - Maintenance: `Image.calories` → `Image.maintenance`
+  - Goal Adjustment: inline → `Image.adjustment`
+  - Base Budget: `Image.calories` → `Image.budget`
+  - Credit / Credit Adjustment: `Image.calories` → `Image.credit`
+  - Today's Budget: `Image.calories` → `Image.budget`
+- Reordered calories overview: Data Used section now appears above Budget Input.
+- Macros overview Base Budget also updated to `Image.budget`.
+
+**Icon convention (Design.swift):**
+| Concept | Icon | Color |
+|---------|------|-------|
+| Calories (generic) | `flame.fill` | `.calories` |
+| Maintenance | `flame.gauge.open` (hierarchical) | `.calories` |
+| Adjustment | `plusminus.circle` (hierarchical) | `.calories` |
+| Budget | `target` | `.calories` |
+| Credit | `creditcard.circle` (hierarchical) | context (green/red) |
+| Weight | `figure` | `.weight` (.purple) |
+| Body Fat | `percent` | `.bodyFat` (.purple) |
+| Protein | custom `meat` | `.protein` |
+| Carbs | custom `bread` | `.carbs` (.orange) |
+| Fat | custom `avocado` | `.fat` (.green) |
+| Alcohol | `wineglass` | `.alcohol` (.indigo) |
+
 **Files changed:**
-- `Shared/Models/HealthData.swift` — `AggregationType`, `HealthData.value`, `HealthDataModel.aggregation`
-- `Shared/Models/DataModels/Calorie.swift` — `value` conformance
-- `Shared/Models/DataModels/Weight.swift` — `value` conformance
-- `Shared/Models/DataModels/BodyFat.swift` — `value` conformance
-- `Shared/Views/Records/RecordList.swift` — `RecordPeriod`, `RecordBucket`, period picker, bucketed list, bucket detail
-- `Shared/Views/Records/RecordDefinition.swift` — `aggregateView` property + init parameter
-- `Shared/Views/Records/Definitions/CalorieRecord.swift` — `aggregate:` closure
-- `Shared/Views/Records/Definitions/WeightRecord.swift` — `aggregate:` closure
-- `Shared/Views/Records/Definitions/BodyFatRecord.swift` — `aggregate:` closure
+- `Shared/Views/UI/Design.swift`
+- `Shared/Views/Records/Definitions/CalorieRecord.swift`
+- `Shared/Views/Analytics/OverviewComponent.swift`
