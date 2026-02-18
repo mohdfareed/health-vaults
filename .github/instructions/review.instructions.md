@@ -1,7 +1,7 @@
 # Review & Design Workshop
 
 1. **Session Kickoff**
-   - Prompt the user for the session’s objective, scope, constraints, and success criteria.
+   - Prompt the user for the session's objective, scope, constraints, and success criteria.
    - Record these in `REVIEW.md`.
 
 2. **Interrogative Dialog**
@@ -13,7 +13,7 @@
    - Iterate sketches based on feedback until the user confirms alignment.
 
 4. **Converge on Solution**
-   - Define the agreed design’s interfaces, data contracts, sequence steps, or API surfaces.
+   - Define the agreed design's interfaces, data contracts, sequence steps, or API surfaces.
    - Document final artifacts directly in `REVIEW.md`.
 
 5. **Action Items & Follow-Up**

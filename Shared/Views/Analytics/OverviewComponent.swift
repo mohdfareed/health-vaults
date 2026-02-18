@@ -73,7 +73,7 @@ public struct OverviewComponent: View {
                 hasLoaded = true
                 await refresh()
             }
-            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
+            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat]) {
                 await refresh()
             }
             .onChange(of: adjustment) { _, newAdjustment in
@@ -112,8 +112,6 @@ public struct OverviewComponent: View {
                 )
             } header: {
                 Text("Snapshot")
-            } footer: {
-                Text("Model readiness and data quality indicators.")
             }
 
             Section {
@@ -133,20 +131,19 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService?.baseBudget,
                     title: "Base Budget",
                     icon: Image.calories,
-                    subtitle: "kcal/day"
+                    subtitle: "kcal/day",
+                    description: "Maintenance + goal adjustment"
                 )
             } header: {
                 Text("Budget Input")
-            } footer: {
-                Text("Base budget is the core input for daily budget calculations.")
             }
 
             Section {
                 calorieValue(
                     budgetDataService.budgetService?.calories.currentIntake,
-                    title: "Today’s Intake",
+                    title: "Today's Intake",
                     icon: Image.calories,
-                    subtitle: "kcal"
+                    subtitle: "kcal/day"
                 )
                 calorieValue(
                     budgetDataService.budgetService?.calories.smoothedIntake,
@@ -165,12 +162,14 @@ public struct OverviewComponent: View {
                     title: "Weight Trend",
                     icon: Image.weight
                 )
+                percentageValue(
+                    budgetDataService.budgetService?.weight.bodyFatPercentageUsed.map { $0 * 100 },
+                    title: "Body Fat Used",
+                    icon: Image.bodyFat,
+                    tint: .bodyFat
+                )
             } header: {
                 Text("Data Used")
-            } footer: {
-                Text(
-                    "These are the recent and smoothed data streams used by the maintenance model."
-                )
             }
 
             Section {
@@ -178,7 +177,8 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService.map { $0.credit },
                     title: "Credit",
                     icon: Image.calories,
-                    subtitle: "kcal"
+                    subtitle: "kcal/day",
+                    description: "Weekly over/under balance"
                 )
                 daysValue(
                     budgetDataService.budgetService.map { Double($0.daysLeft) },
@@ -188,17 +188,19 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService?.dailyAdjustment,
                     title: "Credit Adjustment",
                     icon: Image.calories,
-                    subtitle: "kcal/day"
+                    subtitle: "kcal/day",
+                    description: "Credit ÷ days left (±500 cap)"
                 )
                 calorieValue(
                     budgetDataService.budgetService?.budget,
-                    title: "Today’s Budget",
+                    title: "Today's Budget",
                     icon: Image.calories,
-                    subtitle: "kcal/day"
+                    subtitle: "kcal/day",
+                    description: "Base budget + credit adjustment"
                 )
                 calorieValue(
                     budgetDataService.budgetService?.calories.currentIntake,
-                    title: "Today’s Intake",
+                    title: "Today's Intake",
                     icon: Image.calories,
                     subtitle: "kcal/day"
                 )
@@ -206,37 +208,44 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService?.remaining,
                     title: "Remaining",
                     icon: Image.calories,
-                    subtitle: "kcal/day"
+                    subtitle: "kcal/day",
+                    description: "Budget − intake"
                 )
             } header: {
-                Text("Budget Math")
-            } footer: {
-                Text(
-                    "Base budget = maintenance + goal adjustment. Today’s budget = base budget + (credit ÷ days remaining). Daily credit adjustment is capped at ±500 kcal/day."
-                )
+                Text("Budget Calculation")
             }
 
-            Section {
-                dataPointValue(
-                    budgetDataService.budgetService?.weight.dataPointCount,
-                    title: "Weight Data Points"
-                )
-                dataPointValue(
-                    budgetDataService.budgetService?.calories.dataPointCount,
-                    title: "Calorie Data Points"
-                )
-                dateRangeValue(
-                    budgetDataService.budgetService?.weight.weightDateRange,
-                    title: "Weight Data Range"
-                )
-                dateRangeValue(
-                    budgetDataService.budgetService?.calories.intakeDateRange,
-                    title: "Calorie Data Range"
-                )
-            } header: {
-                Text("Data Coverage")
-            } footer: {
-                Text("Use this to verify what data range and volume are driving the model.")
+            Section("Diagnostics") {
+                NavigationLink {
+                    diagnosticsPage(title: "Data Coverage") {
+                        dataPointValue(
+                            budgetDataService.budgetService?.weight.dataPointCount,
+                            title: "Weight Data Points"
+                        )
+                        dataPointValue(
+                            budgetDataService.budgetService?.calories.dataPointCount,
+                            title: "Calorie Data Points"
+                        )
+                        dataPointValue(
+                            budgetDataService.budgetService?.weight.bodyFatDataPointCount,
+                            title: "Body Fat Data Points"
+                        )
+                        dateRangeValue(
+                            budgetDataService.budgetService?.weight.weightDateRange,
+                            title: "Weight Data Range"
+                        )
+                        dateRangeValue(
+                            budgetDataService.budgetService?.calories.intakeDateRange,
+                            title: "Calorie Data Range"
+                        )
+                        dateRangeValue(
+                            budgetDataService.budgetService?.weight.bodyFatDateRange,
+                            title: "Body Fat Data Range"
+                        )
+                    }
+                } label: {
+                    Label("Data Coverage", systemImage: "chart.bar.doc.horizontal")
+                }
             }
         }
 
@@ -250,8 +259,6 @@ public struct OverviewComponent: View {
                 )
             } header: {
                 Text("Budget Input")
-            } footer: {
-                Text("This base budget is used for all macro budget calculations.")
             }
 
             Section("Protein") {
@@ -299,10 +306,6 @@ public struct OverviewComponent: View {
                 )
             } header: {
                 Text("Fat")
-            } footer: {
-                Text(
-                    "Macro budgets are derived from your calorie budget and macro targets."
-                )
             }
         }
     }
@@ -311,18 +314,32 @@ public struct OverviewComponent: View {
     private var algorithmStatusRow: some View {
         LabeledContent {
             HStack(spacing: 6) {
+                if budgetDataService.budgetService?.weight.isValid != true {
+                    Text("Calibrating")
+                        .foregroundStyle(.secondary)
+                }
                 Circle()
                     .fill(budgetDataService.budgetService?.weight.isValid == true ? .green : .yellow)
                     .frame(width: 8, height: 8)
-                Text(
-                    budgetDataService.budgetService?.weight.isValid == true
-                        ? "Ready"
-                        : "Calibrating."
-                )
-                .foregroundStyle(.secondary)
             }
         } label: {
             Label("Maintenance Status", systemImage: "waveform.path.ecg")
+        }
+    }
+
+    @ViewBuilder
+    private func diagnosticsPage<Content: View>(
+        title: String,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        NavigationStack {
+            List {
+                content()
+            }
+            .navigationTitle(title)
+            .refreshable {
+                await refresh()
+            }
         }
     }
 
@@ -357,14 +374,14 @@ public struct OverviewComponent: View {
             title: intakeTitle,
             icon: icon,
             tint: tint,
-            subtitle: "g"
+            subtitle: "g/day"
         )
         macroValue(
             remaining,
             title: remainingTitle,
             icon: icon,
             tint: tint,
-            subtitle: "g"
+            subtitle: "g/day"
         )
     }
 
@@ -379,7 +396,7 @@ public struct OverviewComponent: View {
                 await refresh()
             }
             // No .task here - data is already loaded from parent overviewPage
-            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]) {
+            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat]) {
                 await refresh()
             }
 
@@ -495,7 +512,8 @@ public struct OverviewComponent: View {
         _ value: Double?,
         title: String.LocalizationValue,
         icon: Image? = nil,
-        subtitle: String? = nil
+        subtitle: String? = nil,
+        description: String? = nil
     ) -> some View {
         MeasurementField(
             validator: nil, format: CalorieFieldDefinition().formatter,
@@ -505,12 +523,13 @@ public struct OverviewComponent: View {
                 definition: UnitDefinition<UnitEnergy>.calorie
             )
         ) {
-            DetailedRow(image: icon, tint: .calories) {
-                Text(String(localized: title))
-            } subtitle: {
-                if let subtitle { Text(subtitle).textScale(.secondary) }
-            } details: {
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: icon,
+                tint: .calories,
+                unitText: subtitle,
+                description: description
+            )
         }
         .disabled(true)
     }
@@ -518,7 +537,8 @@ public struct OverviewComponent: View {
     /// Days value display (for week reset countdown).
     private func daysValue(
         _ value: Double?,
-        title: String.LocalizationValue
+        title: String.LocalizationValue,
+        description: String? = nil
     ) -> some View {
         LabeledContent {
             if let value = value {
@@ -529,12 +549,13 @@ public struct OverviewComponent: View {
                     .foregroundStyle(.tertiary)
             }
         } label: {
-            DetailedRow(image: Image(systemName: "calendar"), tint: .secondary) {
-                Text(String(localized: title))
-            } subtitle: {
-                Text("days").textScale(.secondary)
-            } details: {
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: Image(systemName: "calendar"),
+                tint: .secondary,
+                unitText: "days",
+                description: description
+            )
         }
     }
 
@@ -542,15 +563,17 @@ public struct OverviewComponent: View {
     private func weightRateValue(
         _ value: Double?,
         title: String.LocalizationValue,
-        icon: Image? = nil
+        icon: Image? = nil,
+        description: String? = nil
     ) -> some View {
-        WeightRateRow(value: value, title: title, icon: icon)
+        WeightRateRow(value: value, title: title, icon: icon, description: description)
     }
 
     /// Confidence percentage display.
     private func confidenceValue(
         _ value: Double?,
-        title: String.LocalizationValue
+        title: String.LocalizationValue,
+        description: String? = nil
     ) -> some View {
         LabeledContent {
             if let value = value {
@@ -561,12 +584,13 @@ public struct OverviewComponent: View {
                     .foregroundStyle(.tertiary)
             }
         } label: {
-            Label {
-                Text(String(localized: title))
-            } icon: {
-                Image(systemName: "percent")
-                    .foregroundStyle(.tertiary)
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: Image(systemName: "percent"),
+                tint: .secondary,
+                unitText: nil,
+                description: description
+            )
         }
         .disabled(true)
     }
@@ -575,7 +599,8 @@ public struct OverviewComponent: View {
         _ value: Double?,
         title: String.LocalizationValue,
         icon: Image? = nil, tint: Color? = nil,
-        subtitle: String? = nil
+        subtitle: String? = nil,
+        description: String? = nil
     ) -> some View {
         MeasurementField(
             validator: nil, format: ProteinFieldDefinition().formatter,
@@ -585,12 +610,13 @@ public struct OverviewComponent: View {
                 definition: UnitDefinition<UnitMass>.macro
             ),
         ) {
-            DetailedRow(image: icon, tint: tint) {
-                Text(String(localized: title))
-            } subtitle: {
-                if let subtitle { Text(subtitle).textScale(.secondary) }
-            } details: {
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: icon,
+                tint: tint,
+                unitText: subtitle,
+                description: description
+            )
         }
         .disabled(true)
     }
@@ -599,7 +625,8 @@ public struct OverviewComponent: View {
         _ value: Double?,
         title: String.LocalizationValue,
         icon: Image? = nil,
-        tint: Color? = nil
+        tint: Color? = nil,
+        description: String? = nil
     ) -> some View {
         MeasurementField(
             validator: nil,
@@ -610,19 +637,21 @@ public struct OverviewComponent: View {
                 definition: UnitDefinition.percentage
             )
         ) {
-            DetailedRow(image: icon, tint: tint) {
-                Text(String(localized: title))
-            } subtitle: {
-                Text("%").textScale(.secondary)
-            } details: {
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: icon,
+                tint: tint,
+                unitText: "%",
+                description: description
+            )
         }
         .disabled(true)
     }
 
     private func dataPointValue(
         _ value: Int?,
-        title: String.LocalizationValue
+        title: String.LocalizationValue,
+        description: String? = nil
     ) -> some View {
         LabeledContent {
             if let value {
@@ -633,19 +662,21 @@ public struct OverviewComponent: View {
                     .foregroundStyle(.tertiary)
             }
         } label: {
-            Label {
-                Text(String(localized: title))
-            } icon: {
-                Image(systemName: "number")
-                    .foregroundStyle(.tertiary)
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: Image(systemName: "number"),
+                tint: .secondary,
+                unitText: nil,
+                description: description
+            )
         }
         .disabled(true)
     }
 
     private func dateRangeValue(
         _ range: (from: Date, to: Date)?,
-        title: String.LocalizationValue
+        title: String.LocalizationValue,
+        description: String? = nil
     ) -> some View {
         LabeledContent {
             if let range {
@@ -656,12 +687,13 @@ public struct OverviewComponent: View {
                     .foregroundStyle(.tertiary)
             }
         } label: {
-            Label {
-                Text(String(localized: title))
-            } icon: {
-                Image(systemName: "calendar")
-                    .foregroundStyle(.tertiary)
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: Image(systemName: "calendar"),
+                tint: .secondary,
+                unitText: nil,
+                description: description
+            )
         }
         .disabled(true)
     }
@@ -696,14 +728,16 @@ private struct WeightRateRow: View {
 
     let title: String.LocalizationValue
     let icon: Image?
+    let description: String?
 
-    init(value: Double?, title: String.LocalizationValue, icon: Image?) {
+    init(value: Double?, title: String.LocalizationValue, icon: Image?, description: String?) {
         self._measurement = LocalizedMeasurement(
             .constant(value),
             definition: UnitDefinition<UnitMass>.weight
         )
         self.title = title
         self.icon = icon
+        self.description = description
     }
 
     var body: some View {
@@ -712,13 +746,38 @@ private struct WeightRateRow: View {
             showPicker: true,
             measurement: $measurement
         ) {
-            DetailedRow(image: icon, tint: .weight) {
-                Text(String(localized: title))
-            } subtitle: {
-                Text("\(measurement.unit.symbol)/wk").textScale(.secondary)
-            } details: {
-            }
+            OverviewDetailLabel(
+                title: String(localized: title),
+                icon: icon,
+                tint: .weight,
+                unitText: "\(measurement.unit.symbol)/wk",
+                description: description
+            )
         }
         .disabled(true)
+    }
+}
+
+private struct OverviewDetailLabel: View {
+    let title: String
+    let icon: Image?
+    let tint: Color?
+    let unitText: String?
+    let description: String?
+
+    var body: some View {
+        DetailedRow(image: icon, tint: tint) {
+            Text(title)
+        } subtitle: {
+            if let unitText {
+                Text(unitText).textScale(.secondary)
+            }
+        } details: {
+            if let description {
+                Text(description)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }

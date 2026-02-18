@@ -17,6 +17,8 @@ extension HealthDataModel {
             return WeightQuery() as! any HealthQuery<T>
         case .calorie:
             return DietaryQuery() as! any HealthQuery<T>
+        case .bodyFat:
+            return BodyFatQuery() as! any HealthQuery<T>
         }
     }
 }

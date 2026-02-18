@@ -7,6 +7,8 @@ extension HealthDataModel {
             return weightRecordDefinition
         case .calorie:
             return calorieRecordDefinition
+        case .bodyFat:
+            return bodyFatRecordDefinition
         }
     }
 
@@ -16,6 +18,8 @@ extension HealthDataModel {
             RecordList(.weight, for: Weight.self)
         case .calorie:
             RecordList(.calorie, for: DietaryCalorie.self)
+        case .bodyFat:
+            RecordList(.bodyFat, for: BodyFatPercentage.self)
         }
     }
 }
@@ -130,6 +134,12 @@ extension HealthDataModel {
             WeightFormView(
                 formType: formType,
                 initialRecord: (record as? Weight) ?? Weight(),
+                dataModel: self
+            )
+        case .bodyFat:
+            BodyFatFormView(
+                formType: formType,
+                initialRecord: (record as? BodyFatPercentage) ?? BodyFatPercentage(),
                 dataModel: self
             )
         }

@@ -217,3 +217,59 @@ Comprehensive dead code removal:
 ### Staleness Indicator — Removed
 - `StalenessIndicator` view, timestamp keys/methods, and `cachedAt` properties removed
 - Feature was prototyped but dropped before release
+
+---
+
+## Analytics Pipeline Update (Feb 17, 2026) — BF% Time-Series Integration
+
+### Objective
+- Replace single latest BF% usage with window-scoped BF% time-series in the budget/maintenance pipeline.
+
+### Decisions Applied
+- Promoted BF% to a first-class `HealthKitDataType` (`.bodyFatPercentage`) and enabled write support for app-created BF% entries.
+- Authorization now shares writable types only and reads all types; BF% no longer needs special-case read handling.
+- Budget pipeline now fetches BF% via `fetchStatistics(..., .daily, .discreteAverage)` for both:
+   - primary 28-day window
+   - each historical stage window (180/365/730)
+- `MaintenanceService` now accepts `bodyFatPercentages: [Date: Double]` instead of a single scalar.
+- `rho` now uses latest BF% in window with lookback fallback to latest available BF% in fetched data.
+- Added BF% to budget observers and reactive refresh lists so new BF% readings trigger recalculation.
+- Added full BF% record flow (model, query, form, list, add-menu entry) using existing record conventions.
+- Normalized BF% UI to percentage points (0...100) while storing/querying HealthKit as fractions (0...1).
+- Added dashboard explanatory footer text clarifying calories card semantics and credit icon meaning.
+- Added BF% rows to overview diagnostics (`Body Fat Used`, `Body Fat Data Points`, `Body Fat Data Range`).
+
+### Files Updated
+- `Shared/Services/HealthKit/HealthKitCore.swift`
+- `Shared/Services/HealthKit/Authentication.swift`
+- `Shared/Services/HealthKit/HealthKitStatistics.swift`
+- `Shared/Services/HealthKit/HealthKitUnits.swift`
+- `Shared/Services/HealthData/BudgetDataService.swift`
+- `Shared/Services/Analytics/MaintenanceService.swift`
+- `Shared/Services/AppHealthKitObserver.swift`
+- `Shared/Views/Analytics/BudgetComponent.swift`
+- `Shared/Views/Analytics/MacrosComponent.swift`
+
+### Validation
+- `swift build` passes.
+- Added explicit handling for `HKUnit.percent()` in unit mapping to avoid warning spam after BF% integration.
+
+### Xcode Build Fix (same session)
+- Fixed `WidgetsExtension` compile errors for `BodyFat.swift` (`HealthData`/`DataSource` not found) caused by folder-sync target membership drift.
+- Root cause: new BF% files were not added to `PBXFileSystemSynchronizedBuildFileExceptionSet` exclusions in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj).
+- Added the new files to both app/widgets shared-folder exception sets:
+   - `Models/DataModels/BodyFat.swift`
+   - `Services/HealthData/Queries/BodyFatQuery.swift`
+   - `Views/Records/Definitions/BodyFatRecord.swift`
+- Verified with `xcodebuild -project HealthVaults.xcodeproj -scheme HealthVaults -destination 'generic/platform=iOS Simulator' build` → `** BUILD SUCCEEDED **`.
+
+### UX Refinements (same session)
+- Calories Overview status row updated to `text → icon` order with a mini periodic spinning maintenance flame while calibrating.
+- Calories Overview data coverage moved under a dedicated `Diagnostics` section as a drill-in page (`Data Coverage`) and removed flat-section footer copy.
+- Dashboard legend footer redesigned as a symbolic key (`R`, `x/y`, and actual credit icon) instead of literal prose.
+- Record forms now show an inline permission warning when Health access is missing and present an alert on add/save/delete attempts without authorization.
+- Record lists now show an explicit empty-state message when no records are present due to missing Health permission.
+- Dashboard legend credit row spacing tightened by replacing `Label` with a compact icon+text `HStack`.
+- Macros remaining value now uses `label: "left"` (matching calories) instead of showing the unit symbol.
+- Dashboard legend shorthand updated from `R` to `Left` for immediate readability.
+- Dashboard legend copy further simplified to just `Left`.

@@ -51,7 +51,8 @@ public actor AppHealthKitObserver {
 
         // Observe all HealthKit data types the app uses
         let dataTypes: [HealthKitDataType] = [
-            .dietaryCalories, .bodyMass, .protein, .carbs, .fat, .alcohol,
+            .dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat,
+            .alcohol,
         ]
 
         healthKitService.startObserving(

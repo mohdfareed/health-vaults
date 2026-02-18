@@ -19,25 +19,11 @@ struct DashboardView: View {
 
 struct DashboardWidgets: View {
     @Bindable var goals: UserGoals
-    @AppStorage(.firstDayOfWeek, store: SharedDefaults) private var firstWeekday: Weekday?
-
-    private var budgetFooter: String {
-        let calendar = Calendar.autoupdatingCurrent
-        let targetWeekday = firstWeekday?.calendarValue ?? calendar.firstWeekday
-        let today = Date()
-        let todayWeekday = calendar.component(.weekday, from: today)
-        let offset = (targetWeekday - todayWeekday + 7) % 7
-        let daysRemaining = max(1, offset == 0 ? 7 : offset)
-
-        return
-            "Today’s budget = daily budget + (credit ÷ \(daysRemaining)).\nDays remaining this week: \(daysRemaining)."
-    }
 
     var body: some View {
         List {
             DashboardCard(
-                title: "Calories", icon: .calories, color: .calories,
-                footer: budgetFooter
+                title: "Calories", icon: .calories, color: .calories
             ) {
                 BudgetComponent(
                     adjustment: goals.adjustment,
@@ -53,7 +39,9 @@ struct DashboardWidgets: View {
             }
 
             DashboardCard(
-                title: "Macros", icon: .macros, color: .macros
+                title: "Macros",
+                icon: .macros,
+                color: .macros
             ) {
                 MacrosComponent(
                     adjustment: goals.adjustment,

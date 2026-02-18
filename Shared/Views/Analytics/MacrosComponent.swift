@@ -74,7 +74,7 @@ public struct MacrosComponent: View {
         .animation(.default, value: isLoading)
 
         .refreshOnHealthDataChange(
-            for: [.dietaryCalories, .bodyMass, .protein, .carbs, .fat]
+            for: [.dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat]
         ) {
             if preloadedMacrosService == nil {
                 await refresh()
@@ -207,11 +207,7 @@ private struct MacroBudgetContent: View {
                 Spacer(minLength: 0)
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(remaining ?? 0, format: CalorieFieldDefinition().formatter)
-                        .fontWeight(.bold)
-                        .font(.title)
-                        .foregroundColor(remaining ?? 0 >= 0 ? .primary : .red)
-                        .contentTransition(.numericText(value: remaining ?? 0))
+                    remainingContent(format: formatter)
                     intakeBudgetContent(format: formatter)
                 }
             }
@@ -243,7 +239,8 @@ private struct MacroBudgetContent: View {
                 baseValue: .constant(remaining),
                 definition: UnitDefinition<UnitMass>.macro
             ),
-            icon: nil, tint: nil, format: format
+            icon: nil, tint: nil, format: format,
+            label: widgetFamily == .systemSmall ? "left" : nil
         )
         .fontWeight(.bold)
         .font(widgetFamily == .systemSmall ? .title : .title2)
@@ -256,14 +253,6 @@ private struct MacroBudgetContent: View {
         format: FloatingPointFormatStyle<Double>
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 0) {
-            if widgetFamily == .systemSmall {
-                icon?
-                    .foregroundColor(color)
-                    .font(.subheadline)
-                    .frame(width: 18, height: 18, alignment: .center)
-                    .padding(.trailing, 8)
-            }
-
             Text(intake ?? 0, format: format)
                 .fontWeight(.bold)
                 .font(widgetFamily == .systemSmall ? .headline : .subheadline)
@@ -274,17 +263,25 @@ private struct MacroBudgetContent: View {
                 .font(widgetFamily == .systemSmall ? .headline : .subheadline)
                 .foregroundColor(.secondary)
 
-            ValueView(
-                measurement: .init(
-                    baseValue: .constant(budget),
-                    definition: UnitDefinition<UnitMass>.macro
-                ),
-                icon: nil, tint: nil, format: format
-            )
-            .fontWeight(.bold)
-            .font(widgetFamily == .systemSmall ? .headline : .subheadline)
-            .foregroundColor(.secondary)
-            .contentTransition(.numericText(value: budget ?? 0))
+            if widgetFamily == .systemSmall {
+                ValueView(
+                    measurement: .init(
+                        baseValue: .constant(budget),
+                        definition: UnitDefinition<UnitMass>.macro
+                    ),
+                    icon: nil, tint: nil, format: format
+                )
+                .fontWeight(.bold)
+                .font(.headline)
+                .foregroundColor(.secondary)
+                .contentTransition(.numericText(value: budget ?? 0))
+            } else {
+                Text(budget ?? 0, format: format)
+                    .fontWeight(.bold)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .contentTransition(.numericText(value: budget ?? 0))
+            }
         }
     }
 

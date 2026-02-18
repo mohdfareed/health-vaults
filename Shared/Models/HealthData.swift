@@ -6,7 +6,7 @@ import SwiftData
 
 /// Supported health data model types for the app.
 public enum HealthDataModel: CaseIterable, Identifiable {
-    case calorie, weight
+    case calorie, weight, bodyFat
 
     /// The associated data model type.
     var dataType: any HealthData.Type {
@@ -15,6 +15,8 @@ public enum HealthDataModel: CaseIterable, Identifiable {
             return DietaryCalorie.self
         case .weight:
             return Weight.self
+        case .bodyFat:
+            return BodyFatPercentage.self
         }
     }
 
@@ -25,6 +27,8 @@ public enum HealthDataModel: CaseIterable, Identifiable {
             return .calorie
         case is Weight:
             return .weight
+        case is BodyFatPercentage:
+            return .bodyFat
         default:
             fatalError("Unknown health data type: \(type(of: data))")
         }

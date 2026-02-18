@@ -1,5 +1,4 @@
 import Foundation
-import HealthKit
 import Observation
 import SwiftUI
 import WidgetKit
@@ -106,15 +105,19 @@ public final class BudgetDataService: @unchecked Sendable {
             options: .discreteAverage
         )
 
-        // Fetch most recent body fat percentage from HealthKit
-        let bodyFatData = await fetchLatestBodyFatPercentage()
+        let bodyFatData = await healthKitService.fetchStatistics(
+            for: .bodyFatPercentage,
+            from: fittingRange.from, to: currentRange.to,
+            interval: .daily,
+            options: .discreteAverage
+        )
 
         // Compute personal historical fallback maintenance via progressive fetch.
         // Expands the query window (6mo → 1yr → 2yr) until enough data is found.
         let historicalFallback = await computeHistoricalMaintenance(
             today: today, currentRange: currentRange,
             currentCalorieData: currentCalorieData,
-            bodyFatPercentage: bodyFatData, calendar: cal
+            bodyFatPercentages: bodyFatData, calendar: cal
         )
 
         // Create primary 28-day maintenance service, blending toward
@@ -126,7 +129,7 @@ public final class BudgetDataService: @unchecked Sendable {
                 alpha: 0.25
             ),
             weights: weightData,
-            bodyFatPercentage: bodyFatData,
+            bodyFatPercentages: bodyFatData,
             fallbackMaintenance: historicalFallback
         )
 
@@ -169,7 +172,7 @@ public final class BudgetDataService: @unchecked Sendable {
 
         // Use existing HealthKit observer infrastructure
         healthKitService.startObserving(
-            for: widgetId, dataTypes: [.dietaryCalories, .bodyMass],
+            for: widgetId, dataTypes: [.dietaryCalories, .bodyMass, .bodyFatPercentage],
             from: historicalStart, to: currentRange.to
         ) { [weak self] in
             Task {
@@ -186,38 +189,6 @@ public final class BudgetDataService: @unchecked Sendable {
         logger.info("Stopped observing HealthKit data for budget")
     }
 
-    /// Fetches the most recent body fat percentage from HealthKit.
-    /// Returns a fraction (0-1), or nil if unavailable.
-    private func fetchLatestBodyFatPercentage() async -> Double? {
-        guard HealthKitService.isAvailable else { return nil }
-        let type = HKQuantityType(.bodyFatPercentage)
-        let sortDescriptor = NSSortDescriptor(
-            key: HKSampleSortIdentifierStartDate, ascending: false
-        )
-        return await withCheckedContinuation { continuation in
-            let query = HKSampleQuery(
-                sampleType: type,
-                predicate: nil,
-                limit: 1,
-                sortDescriptors: [sortDescriptor]
-            ) { _, samples, error in
-                if let error = error {
-                    AppLogger.new(for: BudgetDataService.self)
-                        .warning("Failed to fetch body fat %: \(error)")
-                    continuation.resume(returning: nil)
-                    return
-                }
-                guard let sample = samples?.first as? HKQuantitySample else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let value = sample.quantity.doubleValue(for: .percent())
-                continuation.resume(returning: value)
-            }
-            healthKitService.store.execute(query)
-        }
-    }
-
     // MARK: - Historical Maintenance
 
     /// Computes a personal historical maintenance estimate via progressive fetching.
@@ -228,7 +199,7 @@ public final class BudgetDataService: @unchecked Sendable {
     private func computeHistoricalMaintenance(
         today: Date, currentRange: (from: Date, to: Date),
         currentCalorieData: [Date: Double],
-        bodyFatPercentage: Double?,
+        bodyFatPercentages: [Date: Double],
         calendar cal: Calendar
     ) async -> Double {
         for stage in HistoricalFetchStages {
@@ -245,6 +216,13 @@ public final class BudgetDataService: @unchecked Sendable {
 
             let historicalWeights = await healthKitService.fetchStatistics(
                 for: .bodyMass,
+                from: stageStart, to: currentRange.to,
+                interval: .daily,
+                options: .discreteAverage
+            )
+
+            let historicalBodyFat = await healthKitService.fetchStatistics(
+                for: .bodyFatPercentage,
                 from: stageStart, to: currentRange.to,
                 interval: .daily,
                 options: .discreteAverage
@@ -274,7 +252,7 @@ public final class BudgetDataService: @unchecked Sendable {
                     minDataPoints: MinHistoricalCalorieDataPoints
                 ),
                 weights: historicalWeights,
-                bodyFatPercentage: bodyFatPercentage,
+                bodyFatPercentages: historicalBodyFat.isEmpty ? bodyFatPercentages : historicalBodyFat,
                 windowDays: Int(stage),
                 fallbackMaintenance: BaselineMaintenance
             )

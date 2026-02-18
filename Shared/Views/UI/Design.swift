@@ -13,6 +13,7 @@ extension Color {
     // Data Records
     public static var calories: Color { .init("Calorie") }
     public static var weight: Color { .purple }
+    public static var bodyFat: Color { .weight }
 
     // Dietary Energy
     public static var macros: Color { .indigo }
@@ -52,6 +53,7 @@ extension Image {
     // Data Records
     public static var calories: Image { .init(systemName: "flame.fill") }
     public static var weight: Image { .init(systemName: "figure") }
+    public static var bodyFat: Image { .init(systemName: "percent") }
     public static var maintenance: Image {
         .init(systemName: "flame.gauge.open")
             .symbolRenderingMode(.hierarchical)

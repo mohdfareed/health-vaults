@@ -9,6 +9,7 @@ public struct DashboardCard<Content: View, Destination: View>: View {
     let icon: Image
     let color: Color
     let footer: String?
+    let footerContent: AnyView?
 
     @ViewBuilder let content: Content
     @ViewBuilder let destination: Destination
@@ -26,6 +27,24 @@ public struct DashboardCard<Content: View, Destination: View>: View {
         self.icon = icon
         self.color = color
         self.footer = footer
+        self.footerContent = nil
+        self.content = content()
+        self.destination = destination()
+    }
+
+    public init<FooterContent: View>(
+        title: String.LocalizationValue,
+        icon: Image,
+        color: Color,
+        @ViewBuilder footerContent: () -> FooterContent,
+        @ViewBuilder content: () -> Content,
+        @ViewBuilder destination: () -> Destination
+    ) {
+        self.title = title
+        self.icon = icon
+        self.color = color
+        self.footer = nil
+        self.footerContent = AnyView(footerContent())
         self.content = content()
         self.destination = destination()
     }
@@ -44,7 +63,9 @@ public struct DashboardCard<Content: View, Destination: View>: View {
         } header: {
             Text(String(localized: title))
         } footer: {
-            if let footer {
+            if let footerContent {
+                footerContent
+            } else if let footer {
                 Text(footer)
             }
         }

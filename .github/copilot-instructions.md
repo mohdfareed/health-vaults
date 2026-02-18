@@ -1,6 +1,6 @@
 # Project Overview
 
-HealthVaults is an iOS application built with SwiftUI and SwiftData, integrated with Apple HealthKit to track and display user health metrics. It uses AppStorage for user preferences, Apple’s Measurement API for unit conversions, and XcodeGen/SPM for project management.
+HealthVaults is an iOS application built with SwiftUI and SwiftData, integrated with Apple HealthKit to track and display user health metrics. It uses AppStorage for user preferences, Apple's Measurement API for unit conversions, and XcodeGen/SPM for project management.
 
 ## Architecture & Data Flow
 

@@ -6,6 +6,7 @@ import HealthKit
 
 public enum HealthKitDataType: CaseIterable, Sendable {
     case bodyMass
+    case bodyFatPercentage
     case dietaryCalories
     case protein, carbs, fat, alcohol
 
@@ -14,12 +15,17 @@ public enum HealthKitDataType: CaseIterable, Sendable {
     var quantityType: HKQuantityType {
         switch self {
         case .bodyMass: HKQuantityType(.bodyMass)
+        case .bodyFatPercentage: HKQuantityType(.bodyFatPercentage)
         case .dietaryCalories: HKQuantityType(.dietaryEnergyConsumed)
         case .protein: HKQuantityType(.dietaryProtein)
         case .carbs: HKQuantityType(.dietaryCarbohydrates)
         case .fat: HKQuantityType(.dietaryFatTotal)
         case .alcohol: HKQuantityType(.numberOfAlcoholicBeverages)
         }
+    }
+
+    var isWritable: Bool {
+        true
     }
 }
 

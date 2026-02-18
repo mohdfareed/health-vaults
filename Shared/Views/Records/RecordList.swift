@@ -12,6 +12,12 @@ struct RecordList<T: HealthData>: View {
     private let definition: RecordDefinition
     private let healthKitDataTypes: [HealthKitDataType]
 
+    private var hasPermission: Bool {
+        healthKitDataTypes.allSatisfy {
+            healthKit.isAuthorized(for: $0.sampleType) == .sharingAuthorized
+        }
+    }
+
     init(_ dataModel: HealthDataModel, for: T.Type) {
         self.dataModel = dataModel
         self.definition = dataModel.definition
@@ -27,23 +33,43 @@ struct RecordList<T: HealthData>: View {
             self.healthKitDataTypes = [.bodyMass]
         case .calorie:
             self.healthKitDataTypes = [.dietaryCalories]
+        case .bodyFat:
+            self.healthKitDataTypes = [.bodyFatPercentage]
         }
     }
 
     var body: some View {
         List {
-            ForEach(records) { record in
-                RecordListRow(record: record, definition: definition)
-                    .swipeActions {
-                        if record.source == .app {
-                            Button(role: .destructive) {
-                                delete(record)
-                            } label: {
-                                Label("Delete", systemImage: "trash")
-                            }
-                            .tint(.red)
-                        }
+            if records.isEmpty && !$records.isLoading {
+                Section {
+                    if hasPermission {
+                        ContentUnavailableView(
+                            "No Records Yet",
+                            systemImage: "tray",
+                            description: Text("Add a new record to get started.")
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "Health Access Needed",
+                            systemImage: "heart.slash",
+                            description: Text("This list is empty because Apple Health permission is not granted for this data type.")
+                        )
                     }
+                }
+            } else {
+                ForEach(records) { record in
+                    RecordListRow(record: record, definition: definition)
+                        .swipeActions {
+                            if record.source == .app {
+                                Button(role: .destructive) {
+                                    delete(record)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                                .tint(.red)
+                            }
+                        }
+                }
             }
             loadMoreButton()
         }

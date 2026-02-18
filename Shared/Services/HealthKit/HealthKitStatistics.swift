@@ -132,6 +132,7 @@ extension HealthKitService {
         case .dietaryCalories: .kilocalorie()
         case .protein, .carbs, .fat: .gram()
         case .bodyMass: .gramUnit(with: .kilo)
+        case .bodyFatPercentage: .percent()
         case .alcohol: .count()
         }
     }

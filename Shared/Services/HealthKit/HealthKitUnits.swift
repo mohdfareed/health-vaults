@@ -100,6 +100,8 @@ extension HKUnit {
             return UnitVolume.imperialFluidOunces
         case .fluidOunceUS():
             return UnitVolume.fluidOunces
+        case .percent():
+            return nil  // Percentage is dimensionless in this app's Measurement mapping
 
         case .count():
             return nil  // Count is not mapped to a Measurement Unit
@@ -119,6 +121,7 @@ extension HealthKitDataType {
         case .dietaryCalories: .kilocalorie()
         case .protein, .carbs, .fat: .gram()
         case .bodyMass: .gramUnit(with: .kilo)
+        case .bodyFatPercentage: .percent()
         case .alcohol: .count()
         }
     }

@@ -66,6 +66,7 @@ struct WeightFormView: View {
         RecordForm(
             title: "Weight",
             formType: formType,
+            requiredType: .bodyMass,
             saveFunc: { (record: Weight) in
                 let query: any HealthQuery<Weight> = dataModel.query()
                 try await query.save(record, store: HealthKitService.shared)

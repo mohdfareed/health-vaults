@@ -24,14 +24,12 @@ extension HealthKitService {
             return
         }
 
-        let dataTypes = HealthKitDataType.allCases.map { $0.sampleType }
-        // Body fat percentage is read-only (used for personalized energy density)
-        let readTypes = Set(dataTypes) as Set<HKObjectType>
-        let extraReadTypes: Set<HKObjectType> = [
-            HKQuantityType(.bodyFatPercentage)
-        ]
+        let writableTypes = HealthKitDataType.allCases
+            .filter(\.isWritable)
+            .map(\.sampleType)
+        let readTypes = Set(HealthKitDataType.allCases.map(\.sampleType)) as Set<HKObjectType>
         store.requestAuthorization(
-            toShare: Set(dataTypes), read: readTypes.union(extraReadTypes)
+            toShare: Set(writableTypes), read: readTypes
         ) { [weak self] success, error in
             if let error = error {
                 self?.logger.error("HealthKit authorization failed: \(error)")
@@ -67,7 +65,9 @@ extension HealthKitService {
     /// `authorizationStatus(for:)` reflects sharing permission, so read-only types
     /// should not be included in this aggregate state.
     private func requiredWriteAuthorizationStatuses() -> [HKAuthorizationStatus] {
-        let dataTypes = HealthKitDataType.allCases.map(\.sampleType)
+        let dataTypes = HealthKitDataType.allCases
+            .filter(\.isWritable)
+            .map(\.sampleType)
         return dataTypes.map { isAuthorized(for: $0) }
     }
 }

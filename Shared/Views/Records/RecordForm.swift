@@ -10,10 +10,12 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var showConfirmation = false
+    @State private var showPermissionAlert = false
     @State private var isLoading = false
 
     let title: String.LocalizationValue
     let formType: RecordFormType
+    let requiredType: HealthKitDataType
 
     let saveFunc: (R) async throws -> Void
     let deleteFunc: (R) async throws -> Void
@@ -21,8 +23,23 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
     @Binding var record: R
     @ViewBuilder let content: (Binding<R>) -> Content
 
+    private var hasPermission: Bool {
+        healthKit.isAuthorized(for: requiredType.sampleType) == .sharingAuthorized
+    }
+
     var body: some View {
         Form {
+            if !hasPermission && formType != .view {
+                Section {
+                    Label(
+                        "Apple Health permission is required to save and delete records.",
+                        systemImage: "exclamationmark.triangle"
+                    )
+                    .foregroundStyle(.orange)
+                    .font(.subheadline)
+                }
+            }
+
             content($record)
 
             Section {
@@ -64,7 +81,13 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
                 createButtons()
             }
             // View mode has no toolbar - uses navigation back button
-        }.toolbarTitleDisplayMode(.inline)
+        }
+        .alert("Health Access Required", isPresented: $showPermissionAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Please allow HealthVaults to access Apple Health for this data type.")
+        }
+        .toolbarTitleDisplayMode(.inline)
     }
 
     @ToolbarContentBuilder
@@ -84,6 +107,10 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
             ) {
                 Button("Cancel", role: .cancel) {}
                 Button("Delete", role: .destructive) {
+                    guard hasPermission else {
+                        showPermissionAlert = true
+                        return
+                    }
                     let wrapper = { await delete(record) }
                     Task {
                         await wrapper()
@@ -96,6 +123,10 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             LoadingButton(role: .confirm) {
+                guard hasPermission else {
+                    showPermissionAlert = true
+                    return
+                }
                 await save(record)
                 dismiss()
             } label: {
@@ -116,6 +147,10 @@ struct RecordForm<R: HealthData & Sendable, Content: View>: View {
         }
         ToolbarItem(placement: .confirmationAction) {
             LoadingButton(role: .confirm) {
+                guard hasPermission else {
+                    showPermissionAlert = true
+                    return
+                }
                 await save(record)
                 dismiss()
             } label: {

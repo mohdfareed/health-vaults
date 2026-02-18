@@ -72,7 +72,7 @@ extension Date {
             .adding(-1, .second, using: cal)
     }
 
-    /// A date range ending at the unit’s ceiling and
+    /// A date range ending at the unit's ceiling and
     /// going back `amount` units.
     func dateRange(
         by amount: UInt = 1, _ unit: Calendar.Component = .day,

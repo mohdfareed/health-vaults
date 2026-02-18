@@ -32,6 +32,13 @@ extension UnitDefinition where D == UnitMass {
         .percent,
         usage: .asProvided,
     )
+
+    /// Body fat percentage definition (fraction shown as percent).
+    public static let bodyFat = UnitDefinition<UnitMass>(
+        .percent,
+        usage: .asProvided,
+        healthKitType: .bodyFatPercentage,
+    )
 }
 
 extension UnitDefinition where D == UnitVolume {

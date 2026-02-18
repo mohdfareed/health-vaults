@@ -18,6 +18,7 @@ struct DetailedRow<Title: View, Subtitle: View, Details: View>: View {
                         .foregroundStyle(.secondary)
                 }
             }
+            .lineLimit(1)
 
             if let details = details() {
                 details.textScale(.secondary)
@@ -31,7 +32,6 @@ struct DetailedRow<Title: View, Subtitle: View, Details: View>: View {
             }
         }
         .truncationMode(.tail)
-        .lineLimit(1)
 
         .animation(.default, value: tint)
         .animation(.default, value: image)

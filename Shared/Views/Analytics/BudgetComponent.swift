@@ -67,7 +67,7 @@ public struct BudgetComponent: View {
                 await dataService?.refresh()
             }
         }
-        .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass]) {
+        .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .bodyFatPercentage]) {
             // Auto-refresh when AppHealthKitObserver detects changes
             // Only refresh if using data service (not preloaded widget data)
             if preloadedBudgetService == nil {
@@ -175,11 +175,7 @@ private struct SmallBudgetLayout: View {
             Spacer(minLength: 0)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(budget.remaining, format: CalorieFieldDefinition().formatter)
-                    .fontWeight(.bold)
-                    .font(.title)
-                    .foregroundColor(budget.remaining >= 0 ? .primary : .red)
-                    .contentTransition(.numericText(value: budget.remaining))
+                CalorieContent(data: budget)
                 CreditContent(data: budget)
             }
         }

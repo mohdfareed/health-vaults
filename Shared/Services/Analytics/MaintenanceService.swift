@@ -25,8 +25,8 @@ public struct MaintenanceService: Sendable, Codable {
 
     /// Recent daily weights (kg), oldest first
     let weights: [Date: Double]
-    /// Body fat percentage (0-1), if available from HealthKit.
-    let bodyFatPercentage: Double?
+    /// Daily body-fat percentage values (0-1), if available from HealthKit.
+    let bodyFatPercentages: [Date: Double]
 
     /// Window size for regression and confidence (days). Default: 28.
     let windowDays: Int
@@ -38,19 +38,19 @@ public struct MaintenanceService: Sendable, Codable {
     /// - Parameters:
     ///   - calories: Intake analytics service for EWMA smoothing
     ///   - weights: Daily weight data
-    ///   - bodyFatPercentage: Body fat fraction (0-1) for Forbes model, or nil
+    ///   - bodyFatPercentages: Daily body-fat fractions (0-1) for Forbes model
     ///   - windowDays: Regression window size in days (default: RegressionWindowDays)
     ///   - fallbackMaintenance: Fallback TDEE when data is sparse (default: BaselineMaintenance)
     public init(
         calories: IntakeAnalyticsService,
         weights: [Date: Double],
-        bodyFatPercentage: Double?,
+        bodyFatPercentages: [Date: Double] = [:],
         windowDays: Int = Int(RegressionWindowDays),
         fallbackMaintenance: Double = BaselineMaintenance
     ) {
         self.calories = calories
         self.weights = weights
-        self.bodyFatPercentage = bodyFatPercentage
+        self.bodyFatPercentages = bodyFatPercentages
         self.windowDays = windowDays
         self.fallbackMaintenance = fallbackMaintenance
     }
@@ -59,7 +59,7 @@ public struct MaintenanceService: Sendable, Codable {
     /// Computed via Forbes partition model when body fat % is available,
     /// otherwise falls back to `DefaultRho` (7350).
     var rho: Double {
-        guard let bf = bodyFatPercentage,
+        guard let bf = latestBodyFat,
               let latestWeight = latestWeight
         else { return DefaultRho }
         let fatMass = bf * latestWeight
@@ -72,9 +72,27 @@ public struct MaintenanceService: Sendable, Codable {
         dailyWeights.max(by: { $0.key < $1.key })?.value
     }
 
+    /// Most recent body-fat percentage in the current window, with lookback fallback.
+    private var latestBodyFat: Double? {
+        windowBodyFat.max(by: { $0.key < $1.key })?.value
+            ?? dailyBodyFat.max(by: { $0.key < $1.key })?.value
+    }
+
+    /// Body-fat percentage currently used by the Forbes model.
+    var bodyFatPercentageUsed: Double? {
+        latestBodyFat
+    }
+
     /// Daily weight buckets.
     var dailyWeights: [Date: Double] {
         return weights.bucketed(by: .day, using: .autoupdatingCurrent)
+            .mapValues { $0.average() ?? .nan }
+            .filter { !$0.value.isNaN }
+    }
+
+    /// Daily body-fat percentage buckets.
+    private var dailyBodyFat: [Date: Double] {
+        return bodyFatPercentages.bucketed(by: .day, using: .autoupdatingCurrent)
             .mapValues { $0.average() ?? .nan }
             .filter { !$0.value.isNaN }
     }
@@ -84,6 +102,13 @@ public struct MaintenanceService: Sendable, Codable {
         let cal = Calendar.autoupdatingCurrent
         let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
         return dailyWeights.filter { $0.key >= cutoff }
+    }
+
+    /// Body-fat values within the regression window.
+    private var windowBodyFat: [Date: Double] {
+        let cal = Calendar.autoupdatingCurrent
+        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
+        return dailyBodyFat.filter { $0.key >= cutoff }
     }
 
     /// The date range for weight data within the window.
@@ -96,6 +121,18 @@ public struct MaintenanceService: Sendable, Codable {
     /// Number of distinct daily weight measurements in the window.
     var dataPointCount: Int {
         windowWeights.count
+    }
+
+    /// Number of distinct daily body-fat measurements in the window.
+    var bodyFatDataPointCount: Int {
+        windowBodyFat.count
+    }
+
+    /// The date range for body-fat data within the window.
+    var bodyFatDateRange: (from: Date, to: Date)? {
+        let sorted = windowBodyFat.keys.sorted()
+        guard let min = sorted.first, let max = sorted.last else { return nil }
+        return (from: min, to: max)
     }
 
     /// Span of data in days within the window.

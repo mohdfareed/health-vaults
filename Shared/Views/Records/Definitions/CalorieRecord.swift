@@ -234,6 +234,7 @@ struct CalorieFormView: View {
         RecordForm(
             title: "Calories",
             formType: formType,
+            requiredType: .dietaryCalories,
             saveFunc: { (record: DietaryCalorie) in
                 let query: any HealthQuery<DietaryCalorie> = dataModel.query()
                 try await query.save(record, store: HealthKitService.shared)
