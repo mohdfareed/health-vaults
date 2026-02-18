@@ -1,15 +1,11 @@
 {
-  // debugging
-  "lldb.library": "/Applications/Xcode.app/Contents/SharedFrameworks/LLDB.framework/Versions/A/LLDB",
-  "lldb.launch.expressions": "native",
-  // swift
-  "swift.swiftEnvironmentVariables": {
-    "DEVELOPER_DIR": "/Applications/Xcode.app/Contents/Developer"
-  },
   "[swift]": {
     "editor.defaultFormatter": "swiftlang.swift-vscode",
     "editor.detectIndentation": false,
     "editor.indentSize": 4,
+  },
+  "chat.tools.terminal.autoApprove": {
+    "swift": true
   },
   // json
   "[json]": {
@@ -61,6 +57,5 @@
     "xcodeproj",
     "xmark",
     "xyaxis"
-],
-  "swift.path": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin",
+  ]
 }

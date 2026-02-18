@@ -44,7 +44,7 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
             } subtitle: {
                 if let computedValue = computed?(),
                     let baseValue = $measurement.baseValue,
-                    abs(baseValue - computedValue) > .ulpOfOne
+                    shouldShowComputedButton(baseValue: baseValue, computedValue: computedValue)
                 {
                     Button {
                         $measurement.baseValue = computedValue
@@ -72,6 +72,12 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
         .toolbar {
             if isActive {
                 ToolbarItemGroup(placement: .keyboard) {
+                    Button {
+                        isActive = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                    }
+
                     // Sign button - only include if needed
                     if showSign {
                         Button("Invert", systemImage: "plusminus") {
@@ -85,7 +91,7 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
                     // Computed button - only include if applicable
                     if let computedValue = computed?(),
                         let baseValue = $measurement.baseValue,
-                        abs(baseValue - computedValue) > .ulpOfOne
+                        shouldShowComputedButton(baseValue: baseValue, computedValue: computedValue)
                     {
                         Button {
                             $measurement.baseValue = computedValue
@@ -94,19 +100,14 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
                         }
                         .fixedSize()
                         .fontDesign(.monospaced)
+                        .contentTransition(.opacity)
                     }
 
                     Spacer()
-
-                    Button {
-                        isActive = false
-                    } label: {
-                        Image(systemName: "checkmark")
-                    }
                 }
             }
         }
-        .transaction { $0.animation = nil }  // Disable toolbar animations
+        .animation(nil, value: isActive)
         .animation(.default, value: $measurement.baseValue)
     }
 
@@ -122,6 +123,15 @@ struct RecordRow<Field: FieldDefinition, DetailContent: View>: View {
             .foregroundStyle(.indigo)
             .contentTransition(.numericText(value: computedValue))
         }
+        .contentTransition(.opacity)
+    }
+
+    private func shouldShowComputedButton(baseValue: Double, computedValue: Double) -> Bool {
+        guard baseValue.isFinite, computedValue.isFinite else {
+            return false
+        }
+
+        return baseValue.formatted(field.formatter) != computedValue.formatted(field.formatter)
     }
 }
 

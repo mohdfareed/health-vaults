@@ -12,6 +12,7 @@ public struct DashboardCard<Content: View, Destination: View>: View {
 
     @ViewBuilder let content: Content
     @ViewBuilder let destination: Destination
+    @State private var isNavigating: Bool = false
 
     public init(
         title: String.LocalizationValue,
@@ -33,6 +34,13 @@ public struct DashboardCard<Content: View, Destination: View>: View {
         Section {
             content
                 .padding(.vertical, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isNavigating = true
+                }
+                .navigationDestination(isPresented: $isNavigating) {
+                    destination
+                }
         } header: {
             Text(String(localized: title))
         } footer: {

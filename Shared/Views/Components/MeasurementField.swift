@@ -134,16 +134,16 @@ struct MeasurementField<Unit: Dimension, Content: View>: View {
             // Only contribute toolbar items when THIS field is focused
             if showDoneButton && isActive {
                 ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
                     Button {
                         isActive = false
                     } label: {
                         Image(systemName: "checkmark")
                     }
+                    Spacer()
                 }
             }
         }
-        .transaction { $0.animation = nil }  // Disable toolbar animations
+        .animation(nil, value: isActive)
 
         .animation(hasAppeared ? .default : nil, value: $measurement.baseValue)
         .animation(hasAppeared ? .default : nil, value: $measurement.displayUnit)

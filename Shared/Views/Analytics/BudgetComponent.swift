@@ -135,11 +135,20 @@ private struct MediumBudgetLayout: View {
                 .frame(maxWidth: 80)
             }
 
-            if !isWidget {
-                Text("Budget + credit ÷ \(budget.daysLeft) days left")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
+            if !isWidget && !budget.weight.isValid {
+                HStack(alignment: .firstTextBaseline, spacing: 6) {
+                    Image.maintenance
+                        .foregroundStyle(Color.calories)
+                        .symbolEffect(
+                            .rotate.byLayer,
+                            options: .repeat(.periodic(delay: 4))
+                        )
+                    Text("Calibrating maintenance estimate")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
             }
+
         }
     }
 }

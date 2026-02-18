@@ -7,6 +7,11 @@ import SwiftUI
 
 /// Reusable overview component for dashboard detailed analytics
 public struct OverviewComponent: View {
+    public enum Focus {
+        case calories
+        case macros
+    }
+
     @State private var budgetDataService: BudgetDataService
     @State private var macrosDataService: MacrosDataService
     @State private var hasLoaded: Bool = false
@@ -15,18 +20,21 @@ public struct OverviewComponent: View {
     private let adjustment: Double?
     private let macroAdjustments: CalorieMacros?
     private let date: Date
+    private let focus: Focus
 
     private let logger = AppLogger.new(for: OverviewComponent.self)
 
     public init(
         adjustment: Double? = nil,
         macroAdjustments: CalorieMacros? = nil,
-        date: Date = Date()
+        date: Date = Date(),
+        focus: Focus = .calories
     ) {
         // Store parameters
         self.adjustment = adjustment
         self.macroAdjustments = macroAdjustments
         self.date = date
+        self.focus = focus
 
         self._budgetDataService = State(
             initialValue: BudgetDataService(
@@ -42,48 +50,15 @@ public struct OverviewComponent: View {
             ))
     }
 
-    // Keep body exactly the same as OverviewWidget
     public var body: some View {
-        Section("Data") {
-            NavigationLink(
-                destination: overviewPage
-            ) {
-                LabeledContent {
-                    HStack {
-                        if budgetDataService.budgetService?.isValid != true {
-                            Image.maintenance.foregroundStyle(Color.calories)
-                                .symbolEffect(
-                                    .rotate.byLayer,
-                                    options: .repeat(.continuous)
-                                )
-                        }
-                    }
-                } label: {
-                    Label {
-                        HStack {
-                            Text("Overview")
-                            if budgetDataService.budgetService?.weight.isValid != true {
-                                Text("Calibrating...")
-                                    .textScale(.secondary)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    } icon: {
-                        Image(systemName: "chart.line.text.clipboard.fill")
-                    }
-                }
-            }
-        }
-        .animation(.default, value: budgetDataService.budgetService?.isValid)
-        .animation(.default, value: budgetDataService.budgetService?.weight.isValid)
+        overviewPage
     }
 
     @ViewBuilder var overviewPage: some View {
         NavigationStack {
             List {
                 if macrosDataService.macrosService != nil {
-                    overviewSections
-                    macrosPage
+                    diagnosticSections
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, minHeight: 100)
@@ -119,144 +94,278 @@ public struct OverviewComponent: View {
         }
     }
 
-    @ViewBuilder var overviewSections: some View {
-        Section("Intake") {
-            calorieValue(
-                budgetDataService.budgetService?.calories.currentIntake,
-                title: "Today",
-                icon: Image.calories,
-                subtitle: "kcal"
-            )
-            calorieValue(
-                budgetDataService.budgetService?.calories.smoothedIntake,
-                title: "Recent Average",
-                icon: Image.calories,
-                subtitle: "kcal/day"
-            )
-            calorieValue(
-                budgetDataService.budgetService?.calories.longTermSmoothedIntake,
-                title: "Sustained Average",
-                icon: Image.calories,
-                subtitle: "kcal/day"
-            )
+    @ViewBuilder var diagnosticSections: some View {
+        if focus == .calories {
+            Section {
+                algorithmStatusRow
+                confidenceValue(
+                    budgetDataService.budgetService?.weight.confidence,
+                    title: "Weight Data Confidence"
+                )
+                confidenceValue(
+                    budgetDataService.budgetService?.calories.confidence,
+                    title: "Calorie Data Confidence"
+                )
+                daysValue(
+                    budgetDataService.budgetService.map { Double($0.daysLeft) },
+                    title: "Days Remaining This Week"
+                )
+            } header: {
+                Text("Snapshot")
+            } footer: {
+                Text("Model readiness and data quality indicators.")
+            }
+
+            Section {
+                calorieValue(
+                    budgetDataService.budgetService?.weight.maintenance,
+                    title: "Maintenance",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    adjustment,
+                    title: "Goal Adjustment",
+                    icon: Image(systemName: "plusminus.circle"),
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.baseBudget,
+                    title: "Base Budget",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+            } header: {
+                Text("Budget Input")
+            } footer: {
+                Text("Base budget is the core input for daily budget calculations.")
+            }
+
+            Section {
+                calorieValue(
+                    budgetDataService.budgetService?.calories.currentIntake,
+                    title: "Today’s Intake",
+                    icon: Image.calories,
+                    subtitle: "kcal"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.calories.smoothedIntake,
+                    title: "7-Day Average",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.calories.longTermSmoothedIntake,
+                    title: "Long-Term Average",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                weightRateValue(
+                    budgetDataService.budgetService?.weight.weightSlope,
+                    title: "Weight Trend",
+                    icon: Image.weight
+                )
+            } header: {
+                Text("Data Used")
+            } footer: {
+                Text(
+                    "These are the recent and smoothed data streams used by the maintenance model."
+                )
+            }
+
+            Section {
+                calorieValue(
+                    budgetDataService.budgetService.map { $0.credit },
+                    title: "Credit",
+                    icon: Image.calories,
+                    subtitle: "kcal"
+                )
+                daysValue(
+                    budgetDataService.budgetService.map { Double($0.daysLeft) },
+                    title: "Until Week Reset"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.dailyAdjustment,
+                    title: "Credit Adjustment",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.budget,
+                    title: "Today’s Budget",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.calories.currentIntake,
+                    title: "Today’s Intake",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+                calorieValue(
+                    budgetDataService.budgetService?.remaining,
+                    title: "Remaining",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+            } header: {
+                Text("Budget Math")
+            } footer: {
+                Text(
+                    "Base budget = maintenance + goal adjustment. Today’s budget = base budget + (credit ÷ days remaining). Daily credit adjustment is capped at ±500 kcal/day."
+                )
+            }
+
+            Section {
+                dataPointValue(
+                    budgetDataService.budgetService?.weight.dataPointCount,
+                    title: "Weight Data Points"
+                )
+                dataPointValue(
+                    budgetDataService.budgetService?.calories.dataPointCount,
+                    title: "Calorie Data Points"
+                )
+                dateRangeValue(
+                    budgetDataService.budgetService?.weight.weightDateRange,
+                    title: "Weight Data Range"
+                )
+                dateRangeValue(
+                    budgetDataService.budgetService?.calories.intakeDateRange,
+                    title: "Calorie Data Range"
+                )
+            } header: {
+                Text("Data Coverage")
+            } footer: {
+                Text("Use this to verify what data range and volume are driving the model.")
+            }
         }
 
-        Section {
-            weightRateValue(
-                budgetDataService.budgetService?.weight.weightSlope,
-                title: "Weight Trend",
-                icon: Image.weight
-            )
-            confidenceValue(
-                budgetDataService.budgetService?.weight.confidence,
-                title: "Data Confidence"
-            )
-            calorieValue(
-                budgetDataService.budgetService?.weight.maintenance,
-                title: "Maintenance",
-                icon: Image.calories,
-                subtitle: "kcal/day"
-            )
-        } header: {
-            Text("Maintenance")
-        } footer: {
-            if budgetDataService.budgetService?.weight.isValid != true {
-                VStack(alignment: .leading) {
-                    Text(
-                        "Log weight and calories regularly to improve your maintenance estimate. Weight data enables trend-based calculations."
-                    )
-                    HStack(alignment: .firstTextBaseline) {
-                        Image.maintenance.foregroundStyle(Color.calories)
-                            .symbolEffect(
-                                .rotate.byLayer,
-                                options: .repeat(.continuous)
-                            )
-                        Text("Calibrating...")
-                    }
-                }
-            } else {
+        if focus == .macros {
+            Section {
+                calorieValue(
+                    macrosDataService.macrosService?.calories?.baseBudget,
+                    title: "Base Budget",
+                    icon: Image.calories,
+                    subtitle: "kcal/day"
+                )
+            } header: {
+                Text("Budget Input")
+            } footer: {
+                Text("This base budget is used for all macro budget calculations.")
+            }
+
+            Section("Protein") {
+                macroSummaryRows(
+                    percentageTitle: "Target",
+                    percentage: macrosDataService.macrosService?.adjustments?.protein,
+                    budgetTitle: "Budget",
+                    intakeTitle: "Intake",
+                    remainingTitle: "Remaining",
+                    icon: Image.protein,
+                    tint: .protein,
+                    intake: macrosDataService.macrosService?.protein.currentIntake,
+                    budget: macrosDataService.macrosService?.budgets?.protein,
+                    remaining: macrosDataService.macrosService?.remaining?.protein
+                )
+            }
+
+            Section("Carbohydrates") {
+                macroSummaryRows(
+                    percentageTitle: "Target",
+                    percentage: macrosDataService.macrosService?.adjustments?.carbs,
+                    budgetTitle: "Budget",
+                    intakeTitle: "Intake",
+                    remainingTitle: "Remaining",
+                    icon: Image.carbs,
+                    tint: .carbs,
+                    intake: macrosDataService.macrosService?.carbs.currentIntake,
+                    budget: macrosDataService.macrosService?.budgets?.carbs,
+                    remaining: macrosDataService.macrosService?.remaining?.carbs
+                )
+            }
+
+            Section {
+                macroSummaryRows(
+                    percentageTitle: "Target",
+                    percentage: macrosDataService.macrosService?.adjustments?.fat,
+                    budgetTitle: "Budget",
+                    intakeTitle: "Intake",
+                    remainingTitle: "Remaining",
+                    icon: Image.fat,
+                    tint: .fat,
+                    intake: macrosDataService.macrosService?.fat.currentIntake,
+                    budget: macrosDataService.macrosService?.budgets?.fat,
+                    remaining: macrosDataService.macrosService?.remaining?.fat
+                )
+            } header: {
+                Text("Fat")
+            } footer: {
                 Text(
-                    "Your maintenance is the calories you burn per day. Calculated from your weight trend and intake."
+                    "Macro budgets are derived from your calorie budget and macro targets."
                 )
             }
         }
+    }
 
-        Section {
-            calorieValue(
-                budgetDataService.budgetService?.baseBudget,
-                title: "Base Budget",
-                icon: Image.calories,
-                subtitle: "kcal/day"
-            )
-            calorieValue(
-                budgetDataService.budgetService.map { $0.credit },
-                title: "Credit",
-                icon: Image.calories,
-                subtitle: "kcal"
-            )
-            daysValue(
-                budgetDataService.budgetService.map { Double($0.daysLeft) },
-                title: "Until Week Reset"
-            )
-            calorieValue(
-                budgetDataService.budgetService?.dailyAdjustment,
-                title: "Credit Adjustment",
-                icon: Image.calories,
-                subtitle: "kcal/day"
-            )
-            calorieValue(
-                budgetDataService.budgetService?.budget,
-                title: "Budget",
-                icon: Image.calories,
-                subtitle: "kcal"
-            )
-        } header: {
-            Text("Budget")
-        } footer: {
-            Text(
-                "Credit is your over/under from the past 7 days, spread across days until your week resets. Capped at ±500 kcal/day."
-            )
+    @ViewBuilder
+    private var algorithmStatusRow: some View {
+        LabeledContent {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(budgetDataService.budgetService?.weight.isValid == true ? .green : .yellow)
+                    .frame(width: 8, height: 8)
+                Text(
+                    budgetDataService.budgetService?.weight.isValid == true
+                        ? "Ready"
+                        : "Calibrating"
+                )
+                .foregroundStyle(.secondary)
+            }
+        } label: {
+            Label("Maintenance Status", systemImage: "waveform.path.ecg")
         }
     }
 
-    @ViewBuilder var macrosPage: some View {
-        Section {
-            NavigationLink(
-                destination: macroDetailPage(title: "Protein", content: proteinSection)
-            ) {
-                DetailedRow(image: Image.protein, tint: .protein) {
-                    Text("Protein")
-                } subtitle: {
-                } details: {
-                }
-            }
-
-            NavigationLink(
-                destination: macroDetailPage(title: "Carbohydrates", content: carbsSection)
-            ) {
-                DetailedRow(image: Image.carbs, tint: .carbs) {
-                    Text("Carbs")
-                } subtitle: {
-                } details: {
-                }
-            }
-
-            NavigationLink(
-                destination: macroDetailPage(title: "Fat", content: fatSection)
-            ) {
-                DetailedRow(image: Image.fat, tint: .fat) {
-                    Text("Fat")
-                } subtitle: {
-                } details: {
-                }
-            }
-        } header: {
-            Text("Macros")
-        } footer: {
-            Text(
-                "Macros are calculated based on the calorie budget."
-            )
-        }
+    @ViewBuilder
+    private func macroSummaryRows(
+        percentageTitle: String.LocalizationValue,
+        percentage: Double?,
+        budgetTitle: String.LocalizationValue,
+        intakeTitle: String.LocalizationValue,
+        remainingTitle: String.LocalizationValue,
+        icon: Image,
+        tint: Color,
+        intake: Double?,
+        budget: Double?,
+        remaining: Double?
+    ) -> some View {
+        percentageValue(
+            percentage,
+            title: percentageTitle,
+            icon: icon,
+            tint: tint
+        )
+        macroValue(
+            budget,
+            title: budgetTitle,
+            icon: icon,
+            tint: tint,
+            subtitle: "g/day"
+        )
+        macroValue(
+            intake,
+            title: intakeTitle,
+            icon: icon,
+            tint: tint,
+            subtitle: "g"
+        )
+        macroValue(
+            remaining,
+            title: remainingTitle,
+            icon: icon,
+            tint: tint,
+            subtitle: "g"
+        )
     }
 
     @ViewBuilder
@@ -481,6 +590,77 @@ public struct OverviewComponent: View {
             } subtitle: {
                 if let subtitle { Text(subtitle).textScale(.secondary) }
             } details: {
+            }
+        }
+        .disabled(true)
+    }
+
+    private func percentageValue(
+        _ value: Double?,
+        title: String.LocalizationValue,
+        icon: Image? = nil,
+        tint: Color? = nil
+    ) -> some View {
+        MeasurementField(
+            validator: nil,
+            format: ProteinPercentDefinition().formatter,
+            showPicker: false,
+            measurement: .init(
+                baseValue: .constant(value),
+                definition: UnitDefinition.percentage
+            )
+        ) {
+            DetailedRow(image: icon, tint: tint) {
+                Text(String(localized: title))
+            } subtitle: {
+                Text("%").textScale(.secondary)
+            } details: {
+            }
+        }
+        .disabled(true)
+    }
+
+    private func dataPointValue(
+        _ value: Int?,
+        title: String.LocalizationValue
+    ) -> some View {
+        LabeledContent {
+            if let value {
+                Text("\(value)")
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("—")
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            Label {
+                Text(String(localized: title))
+            } icon: {
+                Image(systemName: "number")
+                    .foregroundStyle(.tertiary)
+            }
+        }
+        .disabled(true)
+    }
+
+    private func dateRangeValue(
+        _ range: (from: Date, to: Date)?,
+        title: String.LocalizationValue
+    ) -> some View {
+        LabeledContent {
+            if let range {
+                Text("\(range.from.formatted(date: .abbreviated, time: .omitted)) – \(range.to.formatted(date: .abbreviated, time: .omitted))")
+                    .foregroundStyle(.tertiary)
+            } else {
+                Text("—")
+                    .foregroundStyle(.tertiary)
+            }
+        } label: {
+            Label {
+                Text(String(localized: title))
+            } icon: {
+                Image(systemName: "calendar")
+                    .foregroundStyle(.tertiary)
             }
         }
         .disabled(true)

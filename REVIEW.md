@@ -158,6 +158,46 @@ Comprehensive dead code removal:
 
 ---
 
+## Implementation Session (Feb 17, 2026) — UI TODO Fixes
+
+### Objective
+- Fix permissions status indicator behavior, precision-sensitive computed actions, settings ordering, dashboard budget footnote copy, keyboard toolbar alignment, and README TODO tracking.
+
+### Decisions Applied
+- Health permissions indicator uses tri-state semantics: no access (red), partial access (yellow), full access (green).
+- Authorization aggregation now evaluates all required HealthKit types including body fat percentage read access.
+- Computed-value visibility now compares formatted display values (precision-aware) instead of `Double.ulpOfOne`.
+- Dashboard calorie footnote remains under the dashboard card (not inside widgets) and includes exact days remaining.
+- Keyboard toolbar Done button is left-most in shared numeric input toolbars.
+- Settings section order is Goals first, then General.
+
+### Files Updated
+- `Shared/Services/HealthKit/Authentication.swift`
+- `Shared/Views/AboutView.swift`
+- `Shared/Views/Records/RecordRow.swift`
+- `Shared/Views/Components/MeasurementField.swift`
+- `Shared/Views/Analytics/BudgetComponent.swift`
+- `App/SettingsView.swift`
+- `README.md`
+
+### Follow-up Fixes (same session)
+- Permissions indicator now animates status text/symbol changes with SwiftUI content transitions.
+- Authorization aggregate now checks writable HealthKit types only for tri-state status, fixing the missing green "all authorized" state.
+- Record keyboard toolbar now places Done first, before Invert/computed controls.
+- Dashboard calorie footnote visibility is now explicitly driven by `BudgetComponent(showDashboardFootnote:)` and enabled from `DashboardView`.
+- Computed value indicator keeps numeric-text digit animation and now includes fade transition on label content changes.
+- Floating global add (`+`) menu now hides while keyboard is visible to avoid large upward displacement caused by keyboard + accessory toolbar safe-area changes.
+- Dashboard calorie footnote copy updated to concise formula wording with explicit divisor and days-remaining explanation.
+- Goals page segmented control moved outside the form rows (top bar-style container) to remove extra white cell background and keep native separation between Calories and Macros.
+- Overview page redesigned as a screenshot-friendly diagnostic report: Snapshot, Calorie Inputs, Maintenance Model, Budget Math, and inline Macros summary sections.
+- Removed macro drill-down dependency in Overview detail flow so one screenshot can capture most algorithm inputs/outputs.
+- Copy updated to make formulas and model behavior easier to understand for non-technical users while preserving diagnostic value.
+- Dashboard overview entry removed; calories and macros cards now navigate directly to focused overview pages (`Calorie Overview` / `Macros Overview`).
+- Goals header adjusted to a standard inline-title + in-form segmented control layout to avoid oversized top inset and hidden title.
+- Added dashboard-only calibration indicator under the calories card content using periodic swing animation (non-continuous), replacing prior continuous spinner behavior.
+
+---
+
 ## UI Changes (Feb 16, 2026)
 
 ### Goals Page

@@ -150,7 +150,8 @@ struct CreditRow: View {
 }
 
 public struct HealthPermissionsManager: View {
-    @State private var authStatus: HealthAuthorizationStatus = .denied
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var authStatus: HealthAuthorizationStatus = .noAccess
 
     let service: HealthKitService
     public init(service: HealthKitService) {
@@ -159,44 +160,62 @@ public struct HealthPermissionsManager: View {
 
     public var body: some View {
         Button {
-            service.requestAuthorization()
+            service.requestAuthorization {
+                refreshAuthStatus()
+            }
         } label: {
             Label {
                 HStack {
                     Text("Health Permissions")
                         .foregroundStyle(Color.primary)
                     Spacer()
-                    switch authStatus {
-                    case .notReviewed:
-                        Text("Request")
-                            .foregroundStyle(Color.accent)
-                        Image(systemName: "lock.shield.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(Color.accent)
-                    case .authorized:
-                        Image(systemName: "checkmark.circle.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(Color.green)
-                    case .denied:
-                        Image(systemName: "xmark.circle.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(Color.red)
-                    case .partiallyAuthorized:
-                        Text("Partial")
-                            .foregroundStyle(Color.secondary)
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .imageScale(.large)
-                            .foregroundStyle(Color.yellow)
-                    }
+                    statusView
                 }
             } icon: {
                 Image.healthKit
                     .foregroundStyle(Color.healthKit)
             }
         }
-        .disabled(authStatus != .notReviewed)
-        .animation(.default, value: authStatus)
+        .animation(.smooth, value: authStatus)
         .onAppear {
+            refreshAuthStatus()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                refreshAuthStatus()
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var statusView: some View {
+        switch authStatus {
+        case .noAccess:
+            Text("None")
+                .foregroundStyle(Color.secondary)
+                .contentTransition(.opacity)
+            Image(systemName: "xmark.circle.fill")
+                .imageScale(.large)
+                .foregroundStyle(Color.red)
+                .contentTransition(.symbolEffect(.replace))
+        case .authorized:
+            Image(systemName: "checkmark.circle.fill")
+                .imageScale(.large)
+                .foregroundStyle(Color.green)
+                .contentTransition(.symbolEffect(.replace))
+        case .partiallyAuthorized:
+            Text("Partial")
+                .foregroundStyle(Color.secondary)
+                .contentTransition(.opacity)
+            Image(systemName: "exclamationmark.circle.fill")
+                .imageScale(.large)
+                .foregroundStyle(Color.yellow)
+                .contentTransition(.symbolEffect(.replace))
+        }
+    }
+
+    private func refreshAuthStatus() {
+        withAnimation(.smooth) {
             authStatus = service.authorizationStatus()
         }
     }

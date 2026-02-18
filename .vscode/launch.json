@@ -1,6 +1,12 @@
 {
   "configurations": [
     {
+      "type": "sweetpad-lldb",
+      "request": "attach",
+      "name": "SweetPad: Build and Run (Wait for debugger)",
+      "preLaunchTask": "sweetpad: debugging-launch"
+    },
+    {
       "type": "swift",
       "request": "launch",
       "args": [],

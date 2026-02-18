@@ -2,6 +2,61 @@ import SwiftData
 import SwiftUI
 import WidgetKit
 
+// MARK: - Combined Goals View
+// ============================================================================
+
+public struct GoalsView: View {
+    private enum GoalsSection: String, CaseIterable, Identifiable {
+        case calories = "Calories"
+        case macros = "Macros"
+
+        var id: String { rawValue }
+    }
+
+    @Environment(\.modelContext) private var context: ModelContext
+    @Query.Singleton var goals: UserGoals
+    @State private var selectedSection: GoalsSection = .calories
+
+    public init(_ id: UUID) {
+        self._goals = .init(id)
+    }
+
+    public var body: some View {
+        Form {
+            Section {
+                Picker("Goals Section", selection: $selectedSection) {
+                    ForEach(GoalsSection.allCases) { section in
+                        Text(section.rawValue).tag(section)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .listRowBackground(Color.clear)
+            }
+
+            switch selectedSection {
+            case .calories:
+                CalorieGoalFields(goals: Bindable(goals))
+            case .macros:
+                MacrosGoalFields(goals: Bindable(goals))
+            }
+        }
+        .navigationTitle("Goals")
+        .scrollDismissesKeyboard(.interactively)
+        .onChange(of: goals) { save() }
+        .onChange(of: goals.macros) { save() }
+    }
+
+    private func save() {
+        do {
+            try context.save()
+            WidgetCenter.shared.reloadAllTimelines()
+        } catch {
+            AppLogger.new(for: GoalsView.self)
+                .error("Failed to save model: \(error)")
+        }
+    }
+}
+
 // MARK: - Calorie Goal View
 // ============================================================================
 
@@ -182,25 +237,22 @@ struct MacrosGoalFields: View {
         budgetDataService.budgetService?.baseBudget
     }
 
-    /// Protein budget in grams: (budget × protein% / 100) / 4
-    private var proteinGrams: Double? {
-        guard let budget = baseBudget,
-              let pct = goals.macros?.protein else { return nil }
-        return (budget * pct / 100) / 4
+    /// Protein budget in grams: (budget × protein% / 100) / 4.
+    /// Editing grams back-calculates percentage.
+    private var proteinGrams: Binding<Double?> {
+        macroGramsBinding(for: macrosBinding.protein, caloriesPerGram: 4)
     }
 
-    /// Carbs budget in grams: (budget × carbs% / 100) / 4
-    private var carbsGrams: Double? {
-        guard let budget = baseBudget,
-              let pct = goals.macros?.carbs else { return nil }
-        return (budget * pct / 100) / 4
+    /// Carbs budget in grams: (budget × carbs% / 100) / 4.
+    /// Editing grams back-calculates percentage.
+    private var carbsGrams: Binding<Double?> {
+        macroGramsBinding(for: macrosBinding.carbs, caloriesPerGram: 4)
     }
 
-    /// Fat budget in grams: (budget × fat% / 100) / 9
-    private var fatGrams: Double? {
-        guard let budget = baseBudget,
-              let pct = goals.macros?.fat else { return nil }
-        return (budget * pct / 100) / 9
+    /// Fat budget in grams: (budget × fat% / 100) / 9.
+    /// Editing grams back-calculates percentage.
+    private var fatGrams: Binding<Double?> {
+        macroGramsBinding(for: macrosBinding.fat, caloriesPerGram: 9)
     }
 
     var body: some View {
@@ -245,18 +297,18 @@ struct MacrosGoalFields: View {
         Section {
             RecordRow(
                 field: ProteinFieldDefinition(),
-                value: .constant(proteinGrams),
-                isInternal: false
+                value: proteinGrams,
+                isInternal: baseBudget != nil
             )
             RecordRow(
                 field: CarbsFieldDefinition(),
-                value: .constant(carbsGrams),
-                isInternal: false
+                value: carbsGrams,
+                isInternal: baseBudget != nil
             )
             RecordRow(
                 field: FatFieldDefinition(),
-                value: .constant(fatGrams),
-                isInternal: false
+                value: fatGrams,
+                isInternal: baseBudget != nil
             )
         } header: {
             Text("Daily Budget")
@@ -277,6 +329,34 @@ struct MacrosGoalFields: View {
             protein: macros.protein,
             carbs: macros.carbs,
             fat: macros.fat
+        )
+    }
+
+    private func macroGramsBinding(
+        for percentage: Binding<Double?>,
+        caloriesPerGram: Double
+    ) -> Binding<Double?> {
+        Binding(
+            get: {
+                guard
+                    let budget = baseBudget,
+                    let pct = percentage.wrappedValue
+                else { return nil }
+
+                return (budget * pct / 100) / caloriesPerGram
+            },
+            set: { newGrams in
+                guard let budget = baseBudget, budget > 0 else {
+                    return
+                }
+
+                guard let newGrams else {
+                    percentage.wrappedValue = nil
+                    return
+                }
+
+                percentage.wrappedValue = (newGrams * caloriesPerGram / budget) * 100
+            }
         )
     }
 }

@@ -27,14 +27,21 @@ struct AppView: View {
     private var healthKitService
 
     @State private var activeDataModel: HealthDataModel? = nil
+    @State private var isKeyboardVisible: Bool = false
 
     var body: some View {
         TabView {
-            Tab("Dashboard", systemImage: "chart.bar.xaxis") {
+            Tab("Dashboard", systemImage: "heart.gauge.open") {
                 DashboardView(goalsID: goalsID)
             }
 
-            Tab("Data", systemImage: "heart.text.clipboard.fill") {
+            Tab("Goals", systemImage: "target") {
+                NavigationStack {
+                    GoalsView(goalsID)
+                }
+            }
+
+            Tab("Data", systemImage: "heart.text.clipboard") {
                 HealthDataView()
             }
 
@@ -62,7 +69,27 @@ struct AppView: View {
             }
             .padding(.bottom, 64)
             .padding(.trailing, 8)
+            .opacity(isKeyboardVisible ? 0 : 1)
+            .allowsHitTesting(!isKeyboardVisible)
+            .animation(.easeInOut(duration: 0.2), value: isKeyboardVisible)
         }
+
+        #if os(iOS)
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: UIResponder.keyboardWillShowNotification
+                )
+            ) { _ in
+                isKeyboardVisible = true
+            }
+            .onReceive(
+                NotificationCenter.default.publisher(
+                    for: UIResponder.keyboardWillHideNotification
+                )
+            ) { _ in
+                isKeyboardVisible = false
+            }
+        #endif
 
         .sheet(item: $activeDataModel) { dataModel in
             NavigationStack {

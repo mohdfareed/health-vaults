@@ -32,14 +32,14 @@ let package = Package(
             dependencies: [Project.dependency(Project.shared)],
             path: "App",
         ),
-        .target(
-            name: Project.shared,
-            path: "Shared",
-        ),
         .executableTarget(
             name: Project.widgets,
             dependencies: [Project.dependency(Project.shared)],
             path: "Widgets",
+        ),
+        .target(
+            name: Project.shared,
+            path: "Shared",
         ),
     ]
 )

@@ -6,17 +6,21 @@ import HealthKit
 
 /// The authorization status for HealthKit data types.
 public enum HealthAuthorizationStatus {
-    case notReviewed
+    case noAccess
     case authorized
-    case denied
     case partiallyAuthorized
 }
 
 extension HealthKitService {
     /// Request authorization for all required health data types.
-    public func requestAuthorization() {
+    public func requestAuthorization(
+        completion: (@MainActor @Sendable () -> Void)? = nil
+    ) {
         guard Self.isAvailable else {
             logger.warning("HealthKit not available on this device")
+            Task { @MainActor in
+                completion?()
+            }
             return
         }
 
@@ -32,6 +36,10 @@ extension HealthKitService {
             if let error = error {
                 self?.logger.error("HealthKit authorization failed: \(error)")
             }
+
+            Task { @MainActor in
+                completion?()
+            }
         }
     }
 
@@ -42,35 +50,24 @@ extension HealthKitService {
 
     /// Check the overall authorization status for all health data types.
     public func authorizationStatus() -> HealthAuthorizationStatus {
-        if !isReviewed() {
-            return .notReviewed
-        } else if isAuthorized() {
+        let statuses = requiredWriteAuthorizationStatuses()
+
+        if statuses.allSatisfy({ $0 == .sharingAuthorized }) {
             return .authorized
-        } else if isDenied() {
-            return .denied
-        } else {
+        }
+
+        if statuses.contains(.sharingAuthorized) {
             return .partiallyAuthorized
         }
+
+        return .noAccess
     }
 
-    /// Check if the app has complete authorization for all types.
-    private func isAuthorized() -> Bool {
-        return HealthKitDataType.allCases.allSatisfy { type in
-            isAuthorized(for: type.sampleType) == .sharingAuthorized
-        }
-    }
-
-    /// Check if the user has reviewed the permissions for all types.
-    private func isReviewed() -> Bool {
-        return HealthKitDataType.allCases.allSatisfy { type in
-            isAuthorized(for: type.sampleType) != .notDetermined
-        }
-    }
-
-    /// Check if the user has denied permissions for all types.
-    private func isDenied() -> Bool {
-        return HealthKitDataType.allCases.allSatisfy { type in
-            isAuthorized(for: type.sampleType) == .sharingDenied
-        }
+    /// Returns authorization statuses for required writable types.
+    /// `authorizationStatus(for:)` reflects sharing permission, so read-only types
+    /// should not be included in this aggregate state.
+    private func requiredWriteAuthorizationStatuses() -> [HKAuthorizationStatus] {
+        let dataTypes = HealthKitDataType.allCases.map(\.sampleType)
+        return dataTypes.map { isAuthorized(for: $0) }
     }
 }

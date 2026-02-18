@@ -12,7 +12,6 @@ struct SettingsView: View {
     @Environment(\.healthKit)
     internal var healthKit: HealthKitService
 
-    @AppStorage(.userGoals, store: SharedDefaults) var goalsID: UUID
     @AppStorage(.theme, store: SharedDefaults) var theme: AppTheme
 
     @AppLocale private var locale
@@ -25,15 +24,6 @@ struct SettingsView: View {
                     generalSettings
                 }
 
-                Section(header: Text("Goals")) {
-                    NavigationLink(destination: CalorieGoalView(goalsID)) {
-                        Label("Calorie Goals", systemImage: "target")
-                    }
-                    NavigationLink(destination: MacrosGoalView(goalsID)) {
-                        Label("Macros", systemImage: "chart.pie")
-                    }
-                }
-
                 Section {
                     HealthPermissionsManager(service: healthKit)
                 } header: {
@@ -42,7 +32,7 @@ struct SettingsView: View {
                     Text(
                         """
                         Manage Health access permissions at:
-                        Settings > Privacy & Security > Health > \(AppName)
+                        Settings > Privacy & Security > Health > \(AppName).
                         """
                     )
                 }
