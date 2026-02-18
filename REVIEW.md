@@ -124,7 +124,7 @@ Comprehensive dead code removal:
 - Observer retries: max 3, exponential backoff, then give up
 
 ## Version
-- App version: 1.4 (build 1)
+- App version: 1.5 (build 1)
 
 ---
 
