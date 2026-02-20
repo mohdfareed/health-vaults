@@ -41,5 +41,10 @@ let package = Package(
             name: Project.shared,
             path: "Shared",
         ),
+        .testTarget(
+            name: "\(Project.name)Tests",
+            dependencies: [Project.dependency(Project.shared)],
+            path: "Tests",
+        ),
     ]
 )

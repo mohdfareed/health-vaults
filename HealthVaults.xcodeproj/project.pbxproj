@@ -12,6 +12,7 @@
 		007EB1712E074B4600002170 /* HealthVaultsShared in Frameworks */ = {isa = PBXBuildFile; productRef = 007EB1702E074B4600002170 /* HealthVaultsShared */; };
 		00F4455D2E0633F0006965F0 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00F4455C2E0633F0006965F0 /* WidgetKit.framework */; };
 		00F4455F2E0633F0006965F0 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 00F4455E2E0633F0006965F0 /* SwiftUI.framework */; };
+		AA010000000004000000AA04 /* HealthVaultsShared in Frameworks */ = {isa = PBXBuildFile; productRef = AA010000000005000000AA05 /* HealthVaultsShared */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -21,6 +22,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 00F445592E0633F0006965F0;
 			remoteInfo = WidgetsExtension;
+		};
+		BB010000000014000000BB14 /* PBXContainerItemProxy (UITests → HealthVaults) */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B8E4B4E8F12D5C40114FEED0 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 73A6ABB94F5170F06A130A21;
+			remoteInfo = HealthVaults;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -42,6 +50,8 @@
 		00F4455C2E0633F0006965F0 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		00F4455E2E0633F0006965F0 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		3880958F05D30BD1F8C84246 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
+		AA010000000002000000AA02 /* HealthVaultsTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HealthVaultsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BB010000000002000000BB02 /* HealthVaultsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HealthVaultsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -71,8 +81,8 @@
 			membershipExceptions = (
 				Config.swift,
 				Models/Core.swift,
-				Models/DataModels/Calorie.swift,
 				Models/DataModels/BodyFat.swift,
+				Models/DataModels/Calorie.swift,
 				Models/DataModels/Weight.swift,
 				Models/HealthData.swift,
 				Models/Settings.swift,
@@ -90,8 +100,8 @@
 				Services/HealthData/DataService.swift,
 				Services/HealthData/HealthDataNotifications.swift,
 				Services/HealthData/MacrosDataService.swift,
-				Services/HealthData/Queries/CalorieQuery.swift,
 				Services/HealthData/Queries/BodyFatQuery.swift,
+				Services/HealthData/Queries/CalorieQuery.swift,
 				Services/HealthData/Queries/WeightQuery.swift,
 				Services/HealthKit/Authentication.swift,
 				Services/HealthKit/HealthKitCore.swift,
@@ -113,8 +123,8 @@
 				Views/Components/ProgressRing.swift,
 				Views/Components/ValueView.swift,
 				Views/GoalsView.swift,
-				Views/Records/Definitions/CalorieRecord.swift,
 				Views/Records/Definitions/BodyFatRecord.swift,
+				Views/Records/Definitions/CalorieRecord.swift,
 				Views/Records/Definitions/MacrosRecord.swift,
 				Views/Records/Definitions/WeightRecord.swift,
 				Views/Records/RecordDefinition.swift,
@@ -131,8 +141,8 @@
 			membershipExceptions = (
 				Config.swift,
 				Models/Core.swift,
-				Models/DataModels/Calorie.swift,
 				Models/DataModels/BodyFat.swift,
+				Models/DataModels/Calorie.swift,
 				Models/DataModels/Weight.swift,
 				Models/HealthData.swift,
 				Models/Settings.swift,
@@ -150,8 +160,8 @@
 				Services/HealthData/DataService.swift,
 				Services/HealthData/HealthDataNotifications.swift,
 				Services/HealthData/MacrosDataService.swift,
-				Services/HealthData/Queries/CalorieQuery.swift,
 				Services/HealthData/Queries/BodyFatQuery.swift,
+				Services/HealthData/Queries/CalorieQuery.swift,
 				Services/HealthData/Queries/WeightQuery.swift,
 				Services/HealthKit/Authentication.swift,
 				Services/HealthKit/HealthKitCore.swift,
@@ -173,8 +183,8 @@
 				Views/Components/ProgressRing.swift,
 				Views/Components/ValueView.swift,
 				Views/GoalsView.swift,
-				Views/Records/Definitions/CalorieRecord.swift,
 				Views/Records/Definitions/BodyFatRecord.swift,
+				Views/Records/Definitions/CalorieRecord.swift,
 				Views/Records/Definitions/MacrosRecord.swift,
 				Views/Records/Definitions/WeightRecord.swift,
 				Views/Records/RecordDefinition.swift,
@@ -227,6 +237,16 @@
 			path = Widgets;
 			sourceTree = "<group>";
 		};
+		AA010000000003000000AA03 /* Tests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Tests;
+			sourceTree = "<group>";
+		};
+		BB010000000003000000BB03 /* UITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = UITests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -244,6 +264,17 @@
 				007EB1712E074B4600002170 /* HealthVaultsShared in Frameworks */,
 			);
 		};
+		AA010000000009000000AA09 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+				AA010000000004000000AA04 /* HealthVaultsShared in Frameworks */,
+			);
+		};
+		BB010000000009000000BB09 /* Frameworks (UITests) */ = {
+			isa = PBXFrameworksBuildPhase;
+			files = (
+			);
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -252,6 +283,8 @@
 			children = (
 				007EA9622E0714FA00002170 /* HealthVaults.app */,
 				007EA9642E0714FA00002170 /* WidgetsExtension.appex */,
+				AA010000000002000000AA02 /* HealthVaultsTests.xctest */,
+				BB010000000002000000BB02 /* HealthVaultsUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -273,6 +306,7 @@
 				00F4453D2E06330B006965F0 /* Scripts */,
 				007EA9DF2E0736AC00002170 /* Shared */,
 				00F445602E0633F0006965F0 /* Widgets */,
+				AA010000000003000000AA03 /* Tests */,
 				007EAC632E0745AF00002170 /* Shared */,
 				3880958F05D30BD1F8C84246 /* .gitignore */,
 				00F4455B2E0633F0006965F0 /* Frameworks */,
@@ -336,6 +370,51 @@
 			productReference = 007EA9622E0714FA00002170 /* HealthVaults.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AA010000000001000000AA01 /* HealthVaultsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA010000000013000000AA13 /* Build configuration list for PBXNativeTarget "HealthVaultsTests" */;
+			buildPhases = (
+				AA010000000008000000AA08 /* Sources */,
+				AA010000000009000000AA09 /* Frameworks */,
+				AA010000000010000000AA10 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA010000000007000000AA07 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				AA010000000003000000AA03 /* Tests */,
+			);
+			name = HealthVaultsTests;
+			packageProductDependencies = (
+				AA010000000005000000AA05 /* HealthVaultsShared */,
+			);
+			productName = HealthVaultsTests;
+			productReference = AA010000000002000000AA02 /* HealthVaultsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		BB010000000001000000BB01 /* HealthVaultsUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BB010000000013000000BB13 /* Build configuration list for PBXNativeTarget "HealthVaultsUITests" */;
+			buildPhases = (
+				BB010000000008000000BB08 /* Sources */,
+				BB010000000009000000BB09 /* Frameworks */,
+				BB010000000010000000BB10 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BB010000000015000000BB15 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				BB010000000003000000BB03 /* UITests */,
+			);
+			name = HealthVaultsUITests;
+			productName = HealthVaultsUITests;
+			productReference = BB010000000002000000BB02 /* HealthVaultsUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -352,7 +431,15 @@
 					73A6ABB94F5170F06A130A21 = {
 						DevelopmentTeam = B67CHZC3GP;
 					};
-				};
+					AA010000000001000000AA01 = {
+						CreatedOnToolsVersion = 26.0;
+						DevelopmentTeam = B67CHZC3GP;
+						TestTargetID = 73A6ABB94F5170F06A130A21;
+					};				BB010000000001000000BB01 = {
+					CreatedOnToolsVersion = 26.0;
+					DevelopmentTeam = B67CHZC3GP;
+					TestTargetID = 73A6ABB94F5170F06A130A21;
+				};				};
 			};
 			buildConfigurationList = 5AA6211D2EF68453E1C8A500 /* Build configuration list for PBXProject "HealthVaults" */;
 			developmentRegion = en;
@@ -373,6 +460,8 @@
 			targets = (
 				73A6ABB94F5170F06A130A21 /* HealthVaults */,
 				00F445592E0633F0006965F0 /* WidgetsExtension */,
+				AA010000000001000000AA01 /* HealthVaultsTests */,
+				BB010000000001000000BB01 /* HealthVaultsUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -383,7 +472,17 @@
 			files = (
 			);
 		};
+		AA010000000010000000AA10 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
 		CED828E9F6D4D6B92B04EC10 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			files = (
+			);
+		};
+		BB010000000010000000BB10 /* Resources (UITests) */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -397,6 +496,16 @@
 			);
 		};
 		0AE79B4981CBA30DC0C864A6 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		AA010000000008000000AA08 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			files = (
+			);
+		};
+		BB010000000008000000BB08 /* Sources (UITests) */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
@@ -416,6 +525,15 @@
 			isa = PBXTargetDependency;
 			target = 00F445592E0633F0006965F0 /* WidgetsExtension */;
 			targetProxy = 00F4456C2E0633F1006965F0 /* PBXContainerItemProxy */;
+		};
+		AA010000000007000000AA07 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			productRef = AA010000000006000000AA06 /* HealthVaultsShared */;
+		};
+		BB010000000015000000BB15 /* PBXTargetDependency (UITests → HealthVaults) */ = {
+			isa = PBXTargetDependency;
+			target = 73A6ABB94F5170F06A130A21 /* HealthVaults */;
+			targetProxy = BB010000000014000000BB14 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -528,6 +646,36 @@
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 6.0;
 				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA010000000011000000AA11 /* Debug configuration for PBXNativeTarget "HealthVaultsTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.Tests;
+				PRODUCT_NAME = HealthVaultsTests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "";
+			};
+			name = Debug;
+		};
+		AA010000000012000000AA12 /* Release configuration for PBXNativeTarget "HealthVaultsTests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.Tests;
+				PRODUCT_NAME = HealthVaultsTests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "";
 			};
 			name = Release;
 		};
@@ -668,6 +816,36 @@
 			};
 			name = Debug;
 		};
+		BB010000000011000000BB11 /* Debug configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
+				PRODUCT_NAME = HealthVaultsUITests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HealthVaults;
+			};
+			name = Debug;
+		};
+		BB010000000012000000BB12 /* Release configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
+				PRODUCT_NAME = HealthVaultsUITests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HealthVaults;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -687,6 +865,14 @@
 			);
 			defaultConfigurationName = Release;
 		};
+		AA010000000013000000AA13 /* Build configuration list for PBXNativeTarget "HealthVaultsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA010000000011000000AA11 /* Debug configuration for PBXNativeTarget "HealthVaultsTests" */,
+				AA010000000012000000AA12 /* Release configuration for PBXNativeTarget "HealthVaultsTests" */,
+			);
+			defaultConfigurationName = Debug;
+		};
 		E64043FA51E8E4C1BD7B05E5 /* Build configuration list for PBXNativeTarget "HealthVaults" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -694,6 +880,14 @@
 				DBEA588AD83A663DC0B4BE95 /* Release configuration for PBXNativeTarget "HealthVaults" */,
 			);
 			defaultConfigurationName = Release;
+		};
+		BB010000000013000000BB13 /* Build configuration list for PBXNativeTarget "HealthVaultsUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BB010000000011000000BB11 /* Debug configuration for PBXNativeTarget "HealthVaultsUITests" */,
+				BB010000000012000000BB12 /* Release configuration for PBXNativeTarget "HealthVaultsUITests" */,
+			);
+			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
 
@@ -721,6 +915,16 @@
 			productName = HealthVaultsShared;
 		};
 		007EB1702E074B4600002170 /* HealthVaultsShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 007EB1692E074B2800002170 /* XCLocalSwiftPackageReference "../health-vaults" */;
+			productName = HealthVaultsShared;
+		};
+		AA010000000005000000AA05 /* HealthVaultsShared */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 007EB1692E074B2800002170 /* XCLocalSwiftPackageReference "../health-vaults" */;
+			productName = HealthVaultsShared;
+		};
+		AA010000000006000000AA06 /* HealthVaultsShared */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 007EB1692E074B2800002170 /* XCLocalSwiftPackageReference "../health-vaults" */;
 			productName = HealthVaultsShared;

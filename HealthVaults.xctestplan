@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "FA931CD3-F923-488C-9228-DB4CFA954B60",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "codeCoverage" : false,
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:HealthVaults.xcodeproj",
+      "identifier" : "73A6ABB94F5170F06A130A21",
+      "name" : "HealthVaults"
+    }
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:HealthVaults.xcodeproj",
+        "identifier" : "AA010000000001000000AA01",
+        "name" : "HealthVaultsTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:HealthVaults.xcodeproj",
+        "identifier" : "BB010000000001000000BB01",
+        "name" : "HealthVaultsUITests"
+      }
+    }
+  ],
+  "version" : 1
+}

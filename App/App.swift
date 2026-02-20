@@ -16,9 +16,6 @@ import WidgetKit
             self.logger.debug("Initializing model container for \(AppID)")
             self.container = try AppSchema.createContainer()
         } catch {
-            #if !DEBUG
-                fatalError("Failed to initialize model container: \(error)")
-            #endif
             self.logger.error("Failed to initialize model container: \(error)")
 
             do {
