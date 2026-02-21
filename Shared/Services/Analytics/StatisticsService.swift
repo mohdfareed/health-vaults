@@ -101,7 +101,7 @@ extension Date {
             [.year, .month, .day, .weekday], from: self
         )
 
-        let today = components.weekday!
+        guard let today = components.weekday else { return nil }
         let offset = (weekday - today + 7) % 7
         return cal.date(
             byAdding: .day, value: offset == 0 ? 7 : offset, to: self
@@ -114,7 +114,7 @@ extension Date {
             [.year, .month, .day, .weekday], from: self
         )
 
-        let today = components.weekday!
+        guard let today = components.weekday else { return nil }
         let offset = (today - weekday + 7) % 7
         return cal.date(
             byAdding: .day, value: -offset, to: self

@@ -126,7 +126,7 @@ private struct MediumBudgetLayout: View {
                 Spacer()
                 ProgressRing(
                     value: budget.baseBudget,
-                    progress: budget.calories.currentIntake ?? 0,
+                    progress: budget.weight.calories.currentIntake ?? 0,
                     threshold: budget.budget,
                     color: .calories,
                     thresholdColor: budget.credit >= 0 ? .green : .red,
@@ -135,20 +135,43 @@ private struct MediumBudgetLayout: View {
                 .frame(maxWidth: 80)
             }
 
-            if !isWidget && !budget.weight.isValid {
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Image.maintenance
-                        .foregroundStyle(Color.maintenance)
-                        .symbolEffect(
-                            .rotate.byLayer,
-                            options: .repeat(.periodic(delay: 4))
-                        )
-                    Text("Calibrating maintenance estimate")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
+            if !isWidget {
+                if !budget.weight.isValid {
+                    AccuracyNote(
+                        icon: Image.maintenance,
+                        message: "Calibrating maintenance estimate",
+                        animating: true
+                    )
+                }
+                if budget.isBudgetClamped {
+                    AccuracyNote(
+                        icon: Image(systemName: "exclamationmark.shield.fill"),
+                        message: "Budget adjusted for safety",
+                        tint: .orange
+                    )
+                }
+                if budget.weight.isMaintenanceSuspect {
+                    AccuracyNote(
+                        icon: Image(systemName: "chart.line.downtrend.xyaxis"),
+                        message: "Maintenance estimate may be too low",
+                        tint: .orange
+                    )
+                }
+                if budget.weight.isRhoEstimated && budget.weight.weightSlope != 0 {
+                    AccuracyNote(
+                        icon: Image(systemName: "person.and.background.dotted"),
+                        message: "Body composition unknown",
+                        tint: .secondary
+                    )
+                }
+                if budget.weight.isSlopeClamped {
+                    AccuracyNote(
+                        icon: Image(systemName: "waveform.path.ecg.rectangle"),
+                        message: "Unusual weight trend detected",
+                        tint: .secondary
+                    )
                 }
             }
-
         }
     }
 }
@@ -163,7 +186,7 @@ private struct SmallBudgetLayout: View {
                 Spacer()
                 ProgressRing(
                     value: budget.baseBudget,
-                    progress: budget.calories.currentIntake ?? 0,
+                    progress: budget.weight.calories.currentIntake ?? 0,
                     threshold: budget.budget,
                     color: .calories,
                     thresholdColor: budget.credit >= 0 ? .green : .red,
@@ -227,13 +250,13 @@ private func BudgetContent(data: BudgetService, isWidget: Bool = false) -> some 
                 .padding(.trailing, 8)
         }
 
-        Text(data.calories.currentIntake ?? 0, format: formatter)
+        Text(data.weight.calories.currentIntake ?? 0, format: formatter)
             .fontWeight(.bold)
             .font(.headline)
             .foregroundColor(.secondary)
             .contentTransition(
                 .numericText(
-                    value: data.calories.currentIntake ?? 0)
+                    value: data.weight.calories.currentIntake ?? 0)
             )
 
         Text("/")
@@ -275,5 +298,35 @@ private func CreditContent(data: BudgetService) -> some View {
         .font(.headline)
         .foregroundColor(.secondary)
         .contentTransition(.numericText(value: data.credit))
+    }
+}
+
+// MARK: - Accuracy Note
+
+@MainActor
+private struct AccuracyNote: View {
+    let icon: Image
+    let message: String
+    var tint: Color = .secondary
+    var animating: Bool = false
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            icon
+                .foregroundStyle(tint)
+                .symbolEffect(
+                    .rotate.byLayer,
+                    options: animating
+                        ? .repeat(.periodic(delay: 4))
+                        : .nonRepeating
+                )
+                .font(.caption2)
+                .frame(width: 14, height: 14, alignment: .center)
+                .padding(.trailing, 2)
+            Text(message)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 }

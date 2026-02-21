@@ -57,7 +57,9 @@ public struct OverviewComponent: View {
     @ViewBuilder var overviewPage: some View {
         NavigationStack {
             List {
-                if macrosDataService.macrosService != nil {
+                if focus == .calories && budgetDataService.budgetService != nil {
+                    diagnosticSections
+                } else if focus == .macros && macrosDataService.macrosService != nil {
                     diagnosticSections
                 } else {
                     ProgressView()
@@ -102,10 +104,6 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService?.weight.confidence,
                     title: "Weight Data Confidence"
                 )
-                confidenceValue(
-                    budgetDataService.budgetService?.calories.confidence,
-                    title: "Calorie Data Confidence"
-                )
                 daysValue(
                     budgetDataService.budgetService.map { Double($0.daysLeft) },
                     title: "Days Remaining This Week"
@@ -116,26 +114,26 @@ public struct OverviewComponent: View {
 
             Section {
                 calorieValue(
-                    budgetDataService.budgetService?.calories.currentIntake,
+                    budgetDataService.budgetService?.weight.calories.currentIntake,
                     title: "Today's Intake",
                     icon: Image.calories,
                     subtitle: "kcal/day"
                 )
                 calorieValue(
-                    budgetDataService.budgetService?.calories.smoothedIntake,
-                    title: "7-Day Average",
-                    icon: Image.calories,
-                    subtitle: "kcal/day"
-                )
-                calorieValue(
-                    budgetDataService.budgetService?.calories.longTermSmoothedIntake,
+                    budgetDataService.budgetService?.weight.calories.longTermSmoothedIntake,
                     title: "Long-Term Average",
                     icon: Image.calories,
                     subtitle: "kcal/day"
                 )
                 weightRateValue(
                     budgetDataService.budgetService?.weight.weightSlope,
-                    title: "Weight Trend",
+                    title: {
+                        if let w = budgetDataService.budgetService?.weight,
+                           w.rawWeightSlope != w.weightSlope {
+                            return "Weight Trend (clamped)"
+                        }
+                        return "Weight Trend"
+                    }(),
                     icon: Image.weight
                 )
                 percentageValue(
@@ -181,7 +179,7 @@ public struct OverviewComponent: View {
                     title: "Credit",
                     icon: Image.credit,
                     tint: .credit,
-                    subtitle: "kcal/day",
+                    subtitle: "kcal",
                     description: "Weekly over/under balance"
                 )
                 daysValue(
@@ -205,7 +203,7 @@ public struct OverviewComponent: View {
                     description: "Base budget + credit adjustment"
                 )
                 calorieValue(
-                    budgetDataService.budgetService?.calories.currentIntake,
+                    budgetDataService.budgetService?.weight.calories.currentIntake,
                     title: "Today's Intake",
                     icon: Image.calories,
                     subtitle: "kcal/day"
@@ -229,7 +227,7 @@ public struct OverviewComponent: View {
                             title: "Weight Data Points"
                         )
                         dataPointValue(
-                            budgetDataService.budgetService?.calories.dataPointCount,
+                            budgetDataService.budgetService?.weight.calories.dataPointCount,
                             title: "Calorie Data Points"
                         )
                         dataPointValue(
@@ -241,7 +239,7 @@ public struct OverviewComponent: View {
                             title: "Weight Data Range"
                         )
                         dateRangeValue(
-                            budgetDataService.budgetService?.calories.intakeDateRange,
+                            budgetDataService.budgetService?.weight.calories.intakeDateRange,
                             title: "Calorie Data Range"
                         )
                         dateRangeValue(
@@ -251,6 +249,12 @@ public struct OverviewComponent: View {
                     }
                 } label: {
                     Label("Data Coverage", systemImage: "chart.bar.doc.horizontal")
+                }
+
+                NavigationLink {
+                    algorithmDetailsPage
+                } label: {
+                    Label("Algorithm Details", systemImage: "function")
                 }
             }
         }
@@ -335,6 +339,111 @@ public struct OverviewComponent: View {
     }
 
     @ViewBuilder
+    private var algorithmDetailsPage: some View {
+        let w = budgetDataService.budgetService?.weight
+        diagnosticsPage(title: "Algorithm Details") {
+            Section("Energy Density") {
+                calorieValue(
+                    w.map { $0.rho },
+                    title: "ρ (Energy Density)",
+                    subtitle: "kcal/kg",
+                    description: "Forbes model output or default"
+                )
+            }
+
+            Section("Weight Slope") {
+                weightRateValue(
+                    w?.rawWeightSlope,
+                    title: "Weight Slope (Raw)",
+                    icon: Image.weight,
+                    description: "Before physiological clamping"
+                )
+                weightRateValue(
+                    w?.weightSlope,
+                    title: "Weight Slope (Clamped)",
+                    icon: Image.weight,
+                    description: "After bounds [-1, +0.75] kg/wk"
+                )
+                LabeledContent {
+                    if let raw = w?.rawWeightSlope, let clamped = w?.weightSlope {
+                        Text(raw != clamped ? "Yes" : "No")
+                            .foregroundStyle(.tertiary)
+                    } else {
+                        Text("—")
+                            .foregroundStyle(.tertiary)
+                    }
+                } label: {
+                    OverviewDetailLabel(
+                        title: "Slope Clamped",
+                        icon: Image(systemName: "exclamationmark.triangle"),
+                        tint: .secondary,
+                        unitText: nil,
+                        description: nil
+                    )
+                }
+            }
+
+            Section("Maintenance Derivation") {
+                calorieValue(
+                    w.map { $0.blendedSlope * $0.rho / 7.0 },
+                    title: "Energy Imbalance",
+                    subtitle: "kcal/day",
+                    description: "slope x ρ / 7"
+                )
+                calorieValue(
+                    w?.blendedIntake,
+                    title: "Blended Intake",
+                    subtitle: "kcal/day",
+                    description: "EWMA dampened toward fallback"
+                )
+                calorieValue(
+                    w?.rawMaintenance,
+                    title: "Raw Maintenance",
+                    subtitle: "kcal/day",
+                    description: "Before confidence blending"
+                )
+                calorieValue(
+                    w?.fallbackMaintenance,
+                    title: "Fallback Maintenance",
+                    subtitle: "kcal/day",
+                    description: "Blends toward when data is sparse"
+                )
+                LabeledContent {
+                    Text(budgetDataService.fallbackSource.isEmpty ? "—" : budgetDataService.fallbackSource)
+                        .foregroundStyle(.tertiary)
+                } label: {
+                    OverviewDetailLabel(
+                        title: "Fallback Source",
+                        icon: Image(systemName: "arrow.triangle.branch"),
+                        tint: .secondary,
+                        unitText: nil,
+                        description: nil
+                    )
+                }
+                calorieValue(
+                    w?.maintenance,
+                    title: "Final Maintenance",
+                    icon: Image.maintenance,
+                    tint: .maintenance,
+                    subtitle: "kcal/day",
+                    description: "After all blending"
+                )
+            }
+
+            Section("Confidence") {
+                confidenceValue(
+                    w?.confidence,
+                    title: "Weight Confidence"
+                )
+                confidenceValue(
+                    w?.calories.confidence,
+                    title: "Calorie Confidence"
+                )
+            }
+        }
+    }
+
+    @ViewBuilder
     private func diagnosticsPage<Content: View>(
         title: String,
         @ViewBuilder content: () -> Content
@@ -390,129 +499,6 @@ public struct OverviewComponent: View {
             tint: tint,
             subtitle: "g/day"
         )
-    }
-
-    @ViewBuilder
-    private func macroDetailPage<Content: View>(title: String, content: Content) -> some View {
-        NavigationStack {
-            List {
-                content
-            }
-            .navigationTitle(title)
-            .refreshable {
-                await refresh()
-            }
-            // No .task here - data is already loaded from parent overviewPage
-            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat]) {
-                await refresh()
-            }
-
-            .animation(.default, value: macrosDataService.macrosService != nil)
-            .animation(.default, value: macrosDataService.isLoading)
-            .animation(.default, value: budgetDataService.isLoading)
-        }
-    }
-
-    @ViewBuilder var proteinSection: some View {
-        Section("Protein") {
-            macroValue(
-                macrosDataService.macrosService?.protein.currentIntake,
-                title: "Intake",
-                icon: Image.protein, tint: .protein,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.protein.smoothedIntake,
-                title: "EWMA",
-                icon: Image.protein, tint: .protein,
-                subtitle: "/day"
-            )
-        }
-
-        Section("Budget") {
-            macroValue(
-                macrosDataService.macrosService?.remaining?.protein,
-                title: "Remaining",
-                icon: Image.protein, tint: .protein,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.budgets?.protein,
-                title: "Budget",
-                icon: Image.protein, tint: .protein,
-                subtitle: "/day"
-            )
-        }
-    }
-
-    @ViewBuilder var carbsSection: some View {
-        Section("Carbs") {
-            macroValue(
-                macrosDataService.macrosService?.carbs.currentIntake,
-                title: "Intake",
-                icon: Image.carbs, tint: .carbs,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.carbs.smoothedIntake,
-                title: "EWMA",
-                icon: Image.carbs, tint: .carbs,
-                subtitle: "/day"
-            )
-        }
-
-        Section("Budget") {
-            macroValue(
-                macrosDataService.macrosService?.remaining?.carbs,
-                title: "Remaining",
-                icon: Image.carbs, tint: .carbs,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.budgets?.carbs,
-                title: "Budget",
-                icon: Image.carbs, tint: .carbs,
-                subtitle: "/day"
-            )
-        }
-    }
-
-    @ViewBuilder var fatSection: some View {
-        Section("Fat") {
-            macroValue(
-                macrosDataService.macrosService?.fat.currentIntake,
-                title: "Intake",
-                icon: Image.fat, tint: .fat,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.fat.smoothedIntake,
-                title: "EWMA",
-                icon: Image.fat, tint: .fat,
-                subtitle: "/day"
-            )
-        }
-
-        Section("Budget") {
-            macroValue(
-                macrosDataService.macrosService?.remaining?.fat,
-                title: "Remaining",
-                icon: Image.fat, tint: .fat,
-                subtitle: "today"
-            )
-
-            macroValue(
-                macrosDataService.macrosService?.budgets?.fat,
-                title: "Budget",
-                icon: Image.fat, tint: .fat,
-                subtitle: "/day"
-            )
-        }
     }
 
     private func calorieValue(

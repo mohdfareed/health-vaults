@@ -11,6 +11,8 @@ import WidgetKit
 public final class BudgetDataService: @unchecked Sendable {
     @MainActor public private(set) var budgetService: BudgetService?
     @MainActor public private(set) var isLoading: Bool = false
+    /// Describes which stage produced the fallback maintenance value.
+    @MainActor public private(set) var fallbackSource: String = ""
 
     // Injected dependencies
     private let healthKitService: HealthKitService
@@ -45,18 +47,17 @@ public final class BudgetDataService: @unchecked Sendable {
         let today = date.floored(to: .day, using: cal) ?? date
         let yesterday = today.adding(-1, .day, using: cal)
 
-        // Rolling 7-day window: from 7 days ago to yesterday
-        let rolling7DaysAgo = today.adding(-7, .day, using: cal)
-
         // Read user's first day of week setting for repayment schedule
         let storedWeekday: Weekday? = SharedDefaults.rawRepresentable(for: .firstDayOfWeek)
         let firstWeekday = storedWeekday?.calendarValue ?? cal.firstWeekday
 
-        guard let ewmaRange = yesterday?.dateRange(by: 7, using: cal),
-            let currentRange = today.dateRange(using: cal),
+        // Week-aligned credit window: from this week's firstWeekday to yesterday
+        let weekStart = today.previous(firstWeekday, using: cal)
+
+        guard let currentRange = today.dateRange(using: cal),
             let fittingRange = yesterday?.dateRange(
                 by: RegressionWindowDays, using: cal),
-            let rolling7DaysAgo = rolling7DaysAgo,
+            let weekStart = weekStart,
             let yesterday = yesterday
         else {
             logger.error("Failed to calculate date ranges for budget data")
@@ -64,22 +65,14 @@ public final class BudgetDataService: @unchecked Sendable {
             return
         }
 
-        // Rolling 7-day range for credit (7 days ago to yesterday)
-        let rollingRangeFrom = rolling7DaysAgo
-        let rollingRangeTo = yesterday.ceiled(to: .day, using: cal) ?? yesterday
+        // Week-aligned range for credit (week start to yesterday)
+        let weekRangeTo = yesterday.ceiled(to: .day, using: cal) ?? yesterday
 
-        // Fetch data for primary 28-day window and rolling credit
+        // Fetch data for primary 28-day window and week-aligned credit
 
-        let calorieData = await healthKitService.fetchStatistics(
+        let weekCalorieData = await healthKitService.fetchStatistics(
             for: .dietaryCalories,
-            from: ewmaRange.from, to: ewmaRange.to,
-            interval: .daily,
-            options: .cumulativeSum
-        )
-
-        let rollingCalorieData = await healthKitService.fetchStatistics(
-            for: .dietaryCalories,
-            from: rollingRangeFrom, to: rollingRangeTo,
+            from: weekStart, to: weekRangeTo,
             interval: .daily,
             options: .cumulativeSum
         )
@@ -114,7 +107,7 @@ public final class BudgetDataService: @unchecked Sendable {
 
         // Compute personal historical fallback maintenance via progressive fetch.
         // Expands the query window (6mo → 1yr → 2yr) until enough data is found.
-        let historicalFallback = await computeHistoricalMaintenance(
+        let historicalResult = await computeHistoricalMaintenance(
             today: today, currentRange: currentRange,
             currentCalorieData: currentCalorieData,
             bodyFatPercentages: bodyFatData, calendar: cal
@@ -130,18 +123,13 @@ public final class BudgetDataService: @unchecked Sendable {
             ),
             weights: weightData,
             bodyFatPercentages: bodyFatData,
-            fallbackMaintenance: historicalFallback
+            fallbackMaintenance: historicalResult.maintenance
         )
 
-        // Create budget service with rolling 7-day credit and weekly repayment
+        // Create budget service with week-aligned credit and weekly repayment
         let newBudgetService = BudgetService(
-            calories: IntakeAnalyticsService(
-                currentIntakes: currentCalorieData,
-                intakes: calorieData,
-                alpha: 0.25
-            ),
             weight: weightAnalytics,
-            rollingIntakes: rollingCalorieData,
+            weekIntakes: weekCalorieData,
             adjustment: adjustment,
             firstWeekday: firstWeekday,
             currentDate: today
@@ -150,6 +138,7 @@ public final class BudgetDataService: @unchecked Sendable {
         await MainActor.run {
             withAnimation(.default) {
                 budgetService = newBudgetService
+                fallbackSource = historicalResult.source
                 isLoading = false
             }
         }
@@ -201,7 +190,7 @@ public final class BudgetDataService: @unchecked Sendable {
         currentCalorieData: [Date: Double],
         bodyFatPercentages: [Date: Double],
         calendar cal: Calendar
-    ) async -> Double {
+    ) async -> (maintenance: Double, source: String) {
         for stage in HistoricalFetchStages {
             guard let stageStart = today.adding(-Int(stage), .day, using: cal)
             else { continue }
@@ -232,9 +221,11 @@ public final class BudgetDataService: @unchecked Sendable {
             let calorieDataDays = historicalCalories.count
             let weightDataDays = historicalWeights.count
 
-            // Check if we have enough data at this stage
-            guard calorieDataDays >= MinHistoricalCalorieDataPoints,
-                  weightDataDays >= MinHistoricalWeightDataPoints
+            // Require the same minimum bar as the primary window.
+            // The confidence model inside MaintenanceService handles the rest —
+            // there is no need for a separate, stricter parallel validity gate.
+            guard calorieDataDays >= MinCalorieDataPoints,
+                  weightDataDays >= MinWeightDataPoints
             else {
                 logger.debug(
                     "Historical stage \(stage)d: \(weightDataDays) weight, \(calorieDataDays) calorie days (insufficient)"
@@ -249,7 +240,7 @@ public final class BudgetDataService: @unchecked Sendable {
                     intakes: historicalCalories,
                     alpha: 0.25,
                     windowDays: Int(stage),
-                    minDataPoints: MinHistoricalCalorieDataPoints
+                    minDataPoints: MinCalorieDataPoints
                 ),
                 weights: historicalWeights,
                 bodyFatPercentages: historicalBodyFat.isEmpty ? bodyFatPercentages : historicalBodyFat,
@@ -262,10 +253,10 @@ public final class BudgetDataService: @unchecked Sendable {
             logger.info(
                 "Historical maintenance from \(stage)d window: \(historicalMaintenance) kcal/day (conf: \(conf), \(weightDataDays)w \(calorieDataDays)c days)"
             )
-            return historicalService.maintenance
+            return (maintenance: historicalService.maintenance, source: "\(stage)d personal")
         }
 
         logger.info("No sufficient historical data found, using baseline: \(Int(BaselineMaintenance)) kcal/day")
-        return BaselineMaintenance
+        return (maintenance: BaselineMaintenance, source: "baseline \(Int(BaselineMaintenance))")
     }
 }

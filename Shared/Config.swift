@@ -39,7 +39,7 @@ public let RegressionDecay = 0.9
 
 /// EWMA alpha for maintenance calculation (long-term intake pattern).
 /// Low value = stable, ignores single-day spikes.
-/// 0.1 → ~2 week half-life, reflects sustained eating patterns.
+/// 0.1 → ~7-day half-life (ln 0.5 / ln 0.9 ≈ 6.6 days), reflects sustained eating patterns.
 public let MaintenanceAlpha = 0.1
 
 /// Minimum data points required for full confidence.
@@ -55,7 +55,27 @@ public let MinCalorieDataPoints = 14
 public let MaxWeightLossPerWeek = 1.0  // kg/week
 public let MaxWeightGainPerWeek = 0.75  // kg/week
 
-/// Baseline maintenance estimate (kcal/day) used when data is insufficient.
+/// Absolute safety floor for the daily calorie budget (kcal/day).
+/// No adult should be advised to eat below 1000 kcal regardless of their goals.
+/// Clinical guidelines cite 1200 (F) / 1500 (M), but 1000 is the universal lower bound
+/// since the app does not track sex.
+public let MinDailyBudget = 1000.0  // kcal/day
+
+/// Absolute sanity ceiling for the daily calorie budget (kcal/day).
+/// Guards against data errors or outlier maintenance estimates producing absurd budgets.
+public let MaxDailyBudget = 6000.0  // kcal/day
+
+/// Maximum daily credit adjustment applied to the budget (kcal/day).
+/// Prevents a single large over/under week from producing an extreme day-level swing.
+public let MaxDailyAdjustment = 500.0  // kcal/day
+
+/// Rough daily energy expenditure per kg of body weight (kcal/kg/day).
+/// 30 kcal/kg is the population-average TDEE for moderate activity.
+/// Used as a weight-anchored baseline on Day 1, before enough personal data exists.
+/// Example: 70 kg → ~2100 kcal; 52 kg → ~1560 kcal; 90 kg → ~2700 kcal.
+public let WeightBasedBaselineMultiplier = 30.0  // kcal/kg/day
+
+/// Baseline maintenance estimate (kcal/day) used when no weight data is available.
 /// Blended with calculated value based on confidence factor.
 /// 2200 is the population-weighted average TDEE (male ~2500, female ~2000).
 public let BaselineMaintenance = 2200.0  // kcal/day
@@ -82,18 +102,10 @@ public let DefaultRho = 7_350.0  // kcal/kg
 // estimate instead of the generic BaselineMaintenance.
 
 /// Progressive fetch stages (days) for historical data.
-/// Starts narrow and expands until enough data is found or the cap is reached.
-/// 2-year cap: BMR declines ~1-2%/year from aging and major life changes
-/// can shift TDEE significantly beyond this horizon.
-public let HistoricalFetchStages: [UInt] = [180, 365, 730]
-
-/// Minimum weight data points for a reliable historical maintenance estimate.
-/// 28 distinct weigh-in days (~1/week for 6 months) ensures a stable regression.
-public let MinHistoricalWeightDataPoints = 28
-
-/// Minimum calorie tracking days for a reliable historical maintenance estimate.
-/// 56 logged days (~50% adherence over 4 months) ensures EWMA convergence.
-public let MinHistoricalCalorieDataPoints = 56
+/// Starts narrow and expands until enough data is found or the list is exhausted.
+/// Stages extend to 10 years so any personal data beats the generic baseline —
+/// a user who hasn't tracked in years still has better-than-default history.
+public let HistoricalFetchStages: [UInt] = [180, 365, 730, 1825, 3650]
 
 // MARK: - SwiftData Schema
 // ============================================================================

@@ -20,7 +20,7 @@ public struct MacrosAnalyticsService: Sendable, Codable {
     public let adjustments: CalorieMacros?
 
     /// The base daily budget in grams: derived from calorie budget and macro percentages.
-    /// Formula: (CalorieBudget × MacroPercent / 100) / CaloriesPerGram
+    /// Formula: (CalorieBudget x MacroPercent / 100) / CaloriesPerGram
     /// Where CaloriesPerGram is 4 for protein/carbs, 9 for fat.
     public var budgets: CalorieMacros? {
         guard let adjustments = adjustments else { return nil }

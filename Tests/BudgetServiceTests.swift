@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import HealthVaultsShared
 
 // MARK: - BudgetService Tests
@@ -167,7 +168,7 @@ struct BudgetServiceTests {
             weekIntakes: weekIntakes(days: 3, daily: base - 200),
             adjustment: nil,
             firstWeekday: 2,
-            currentDate: referenceWednesday   // daysLeft = 5
+            currentDate: referenceWednesday  // daysLeft = 5
         )
         // dailyAdjustment ≈ 600 / 5 = 120 (well within ±500)
         let raw = svc.credit / Double(svc.daysLeft)
@@ -185,7 +186,7 @@ struct BudgetServiceTests {
             weekIntakes: weekIntakes(days: 6, daily: 0),
             adjustment: nil,
             firstWeekday: 2,
-            currentDate: referenceWednesday   // daysLeft = 5
+            currentDate: referenceWednesday  // daysLeft = 5
         )
         // Raw adjustment = ~13200/5 = ~2640 → clamped to 500
         #expect(svc.dailyAdjustment == 500)
@@ -263,7 +264,7 @@ struct BudgetServiceTests {
             weight: maintenance,
             weekIntakes: [:],
             adjustment: nil,
-            firstWeekday: 2,   // Monday
+            firstWeekday: 2,  // Monday
             currentDate: referenceWednesday  // 2024-01-03 = Wednesday
         )
         #expect(svc.daysLeft == 5)
@@ -341,5 +342,82 @@ struct BudgetServiceTests {
         )
         let expected = svc.baseBudget * Double(loggedDays)
         #expect(abs(svc.credit - expected) < 1.0)
+    }
+
+    // MARK: - Safety Floor / Ceiling
+
+    @Test("Very low maintenance is floored to MinDailyBudget")
+    func lowMaintenance_flooredToMinBudget() {
+        // User whose data shows ~900 kcal maintenance (e.g. extreme restriction)
+        let maintenance = maintenanceService(maintenance: 900)
+        let svc = BudgetService(
+            weight: maintenance,
+            weekIntakes: [:],
+            adjustment: nil,
+            firstWeekday: 2,
+            currentDate: referenceWednesday
+        )
+        // Floor must prevent budget from going below MinDailyBudget
+        #expect(svc.budget >= MinDailyBudget)
+        // And the flag must be set
+        #expect(svc.isBudgetClamped)
+    }
+
+    @Test("Normal maintenance is not clamped")
+    func normalMaintenance_notClamped() {
+        let maintenance = maintenanceService(maintenance: 2200)
+        let svc = BudgetService(
+            weight: maintenance,
+            weekIntakes: [:],
+            adjustment: nil,
+            firstWeekday: 2,
+            currentDate: referenceWednesday
+        )
+        #expect(!svc.isBudgetClamped)
+        #expect(svc.budget >= MinDailyBudget && svc.budget <= MaxDailyBudget)
+    }
+
+    @Test("Extreme high maintenance is capped to MaxDailyBudget")
+    func veryHighMaintenance_cappedToMaxBudget() {
+        // 7000 kcal maintenance (outlier: data error or extreme athlete)
+        let maintenance = maintenanceService(maintenance: 7000)
+        let svc = BudgetService(
+            weight: maintenance,
+            weekIntakes: [:],
+            adjustment: nil,
+            firstWeekday: 2,
+            currentDate: referenceWednesday
+        )
+        #expect(svc.budget <= MaxDailyBudget)
+        #expect(svc.isBudgetClamped)
+    }
+
+    @Test("isAdjustmentClamped true when credit would exceed MaxDailyAdjustment")
+    func largeCredit_isAdjustmentClamped() {
+        let maintenance = maintenanceService(maintenance: 2200)
+        // 6 days of logging 0 kcal → raw adjustment ≈ 2200*6/5 = 2640 > 500
+        let svc = BudgetService(
+            weight: maintenance,
+            weekIntakes: weekIntakes(days: 6, daily: 0),
+            adjustment: nil,
+            firstWeekday: 2,
+            currentDate: referenceWednesday  // daysLeft = 5
+        )
+        #expect(svc.isAdjustmentClamped)
+        #expect(svc.dailyAdjustment == MaxDailyAdjustment)
+    }
+
+    @Test("isAdjustmentClamped false when credit is small")
+    func smallCredit_isAdjustmentNotClamped() {
+        let maintenance = maintenanceService(maintenance: 2200)
+        // 2 days, 100 kcal under each → credit ≈ 200, adjustment ≈ 40
+        let svc = BudgetService(
+            weight: maintenance,
+            weekIntakes: weekIntakes(days: 2, daily: 2100),
+            adjustment: nil,
+            firstWeekday: 2,
+            currentDate: referenceWednesday  // daysLeft = 5
+        )
+        #expect(!svc.isAdjustmentClamped)
     }
 }

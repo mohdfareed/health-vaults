@@ -1,8 +1,9 @@
 import HealthVaultsShared
 import SwiftData
 import SwiftUI
+
 #if os(iOS)
-import UIKit
+    import UIKit
 #endif
 
 // TODO: Add haptics and animations
@@ -32,13 +33,13 @@ struct AppView: View {
     @State private var activeDataModel: HealthDataModel? = nil
     @State private var isKeyboardVisible: Bool = false
 
-        private var effectivePreferredColorScheme: ColorScheme? {
-    #if os(iOS)
-        nil
-    #else
-        self.theme.colorScheme
-    #endif
-        }
+    private var effectivePreferredColorScheme: ColorScheme? {
+        #if os(iOS)
+            nil
+        #else
+            self.theme.colorScheme
+        #endif
+    }
 
     var body: some View {
         TabView {
@@ -47,9 +48,7 @@ struct AppView: View {
             }
 
             Tab("Goals", systemImage: "target") {
-                NavigationStack {
-                    GoalsView(goalsID)
-                }
+                GoalsView(goalsID)
             }
 
             Tab("Data", systemImage: "heart.text.clipboard") {
@@ -73,16 +72,16 @@ struct AppView: View {
         .contentTransition(.opacity)
         .onAppear {
             healthKitService.requestAuthorization()
-#if os(iOS)
-            applyThemeStyle(theme, animated: false)
-#endif
+            #if os(iOS)
+                applyThemeStyle(theme, animated: false)
+            #endif
         }
 
-#if os(iOS)
-        .onChange(of: theme) { _, newTheme in
-            applyThemeStyle(newTheme, animated: true)
-        }
-#endif
+        #if os(iOS)
+            .onChange(of: theme) { _, newTheme in
+                applyThemeStyle(newTheme, animated: true)
+            }
+        #endif
 
         .overlay(alignment: .bottomTrailing) {
             AddMenu { dataModel in
@@ -121,42 +120,42 @@ struct AppView: View {
 }
 
 #if os(iOS)
-extension AppView {
-    private func applyThemeStyle(_ theme: AppTheme, animated: Bool) {
-        guard
-            let scene = UIApplication.shared.connectedScenes
-                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            let window = scene.windows.first(where: \.isKeyWindow)
-        else {
-            return
-        }
+    extension AppView {
+        private func applyThemeStyle(_ theme: AppTheme, animated: Bool) {
+            guard
+                let scene = UIApplication.shared.connectedScenes
+                    .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+                let window = scene.windows.first(where: \.isKeyWindow)
+            else {
+                return
+            }
 
-        let style: UIUserInterfaceStyle
-        switch theme {
-        case .light:
-            style = .light
-        case .dark:
-            style = .dark
-        case .system:
-            style = .unspecified
-        }
+            let style: UIUserInterfaceStyle
+            switch theme {
+            case .light:
+                style = .light
+            case .dark:
+                style = .dark
+            case .system:
+                style = .unspecified
+            }
 
-        let applyStyle = {
-            window.overrideUserInterfaceStyle = style
-        }
+            let applyStyle = {
+                window.overrideUserInterfaceStyle = style
+            }
 
-        guard animated else {
-            applyStyle()
-            return
-        }
+            guard animated else {
+                applyStyle()
+                return
+            }
 
-        UIView.transition(
-            with: window,
-            duration: 0.35,
-            options: [.transitionCrossDissolve, .allowAnimatedContent]
-        ) {
-            applyStyle()
+            UIView.transition(
+                with: window,
+                duration: 0.35,
+                options: [.transitionCrossDissolve, .allowAnimatedContent]
+            ) {
+                applyStyle()
+            }
         }
     }
-}
 #endif

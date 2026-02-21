@@ -1,4 +1,5 @@
 import Foundation
+
 @testable import HealthVaultsShared
 
 // MARK: - Date Helpers
@@ -13,8 +14,12 @@ func daysAgo(_ days: Int) -> Date {
 /// Fixed reference Wednesday (2024-01-03). Used wherever a stable pivot is needed.
 let referenceWednesday: Date = {
     var comps = DateComponents()
-    comps.year = 2024; comps.month = 1; comps.day = 3
-    comps.hour = 12; comps.minute = 0; comps.second = 0
+    comps.year = 2024
+    comps.month = 1
+    comps.day = 3
+    comps.hour = 12
+    comps.minute = 0
+    comps.second = 0
     return Calendar(identifier: .gregorian).date(from: comps)!
 }()
 
@@ -78,4 +83,38 @@ var emptyMaintenanceService: MaintenanceService {
         calories: IntakeAnalyticsService(currentIntakes: [:], intakes: [:], alpha: 0.25),
         weights: [:]
     )
+}
+
+// MARK: - Scenario Helpers
+
+/// Builds a MaintenanceService that approximates `target` kcal/day as its maintenance
+/// estimate, by feeding `days` days of stable weight + constant calories at that target.
+/// Used in BudgetService scenario tests where a known maintenance base is needed.
+func stableMaintenanceService(
+    target: Double,
+    days: Int = 28,
+    fallback: Double? = nil
+) -> MaintenanceService {
+    MaintenanceService(
+        calories: intakeService(intake: target, days: days),
+        weights: constantWeights(days: days),
+        fallbackMaintenance: fallback ?? target
+    )
+}
+
+/// Creates a week-intake dictionary representing `count` logged days, each at `daily` kcal.
+/// Dates are placed outside the regression window so they don't affect MaintenanceService.
+func weekBudgetIntakes(days count: Int, daily: Double) -> [Date: Double] {
+    (0..<count).reduce(into: [:]) { dict, i in
+        dict[daysAgo(40 + i)] = daily
+    }
+}
+
+/// Generates a calorie series where intake ramps linearly from `start` to `end` over `days`.
+func linearCalorieTrend(from start: Double, to end: Double, days: Int) -> [Date: Double] {
+    (0..<days).reduce(into: [:]) { dict, daysBack in
+        // daysBack=0 is today (most recent), daysBack=days-1 is oldest
+        let proportion = days > 1 ? Double(days - 1 - daysBack) / Double(days - 1) : 1.0
+        dict[daysAgo(daysBack)] = start + (end - start) * proportion
+    }
 }

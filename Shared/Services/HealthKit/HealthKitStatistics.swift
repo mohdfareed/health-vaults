@@ -25,7 +25,7 @@ public enum StatisticsInterval: CaseIterable, Sendable {
     // Calculates an anchor date for the query based on the interval type.
     func anchorDate(
         for referenceDate: Date = Date(),
-        calendar: Calendar = Calendar.current
+        calendar: Calendar = .autoupdatingCurrent
     ) -> Date {
         let component: Calendar.Component
         switch self {
@@ -38,7 +38,7 @@ public enum StatisticsInterval: CaseIterable, Sendable {
         case .monthly:
             component = .month
         }
-        return referenceDate.floored(to: component, using: calendar)!
+        return referenceDate.floored(to: component, using: calendar) ?? referenceDate
     }
 }
 
@@ -53,18 +53,63 @@ extension HealthKitService {
         guard Self.isAvailable else { return [:] }
         let quantityType = type.quantityType
         let resultUnit = getTargetUnit(for: type)
-        let calendar = Calendar.current
+        let calendar = Calendar.autoupdatingCurrent
 
         // Use the startDate of the query range to determine the anchor.
         let anchorDate = interval.anchorDate(for: startDate, calendar: calendar)
 
+        // Wrap in a task group with 15-second timeout to prevent hangs
+        let result = await withTaskGroup(of: [Date: Double]?.self) { group in
+            group.addTask { [self] in
+                await self.executeStatisticsQuery(
+                    quantityType: quantityType,
+                    startDate: startDate,
+                    endDate: endDate,
+                    options: options,
+                    anchorDate: anchorDate,
+                    intervalComponents: interval.dateComponents,
+                    resultUnit: resultUnit
+                )
+            }
+
+            // Timeout task — returns nil after 15 seconds
+            group.addTask {
+                try? await Task.sleep(for: .seconds(15))
+                return nil
+            }
+
+            // Return whichever completes first
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first ?? [:]
+        }
+
+        return result
+    }
+
+    /// Executes an HKStatisticsCollectionQuery wrapped in a checked continuation.
+    private func executeStatisticsQuery(
+        quantityType: HKQuantityType,
+        startDate: Date,
+        endDate: Date,
+        options: HKStatisticsOptions,
+        anchorDate: Date,
+        intervalComponents: DateComponents,
+        resultUnit: HKUnit
+    ) async -> [Date: Double] {
+        // Create the predicate inside the task-local scope to avoid
+        // capturing non-Sendable NSPredicate across concurrency boundaries.
+        let samplePredicate = HKQuery.predicateForSamples(
+            withStart: startDate, end: endDate
+        )
+
         return await withCheckedContinuation { continuation in
             let query = HKStatisticsCollectionQuery(
                 quantityType: quantityType,
-                quantitySamplePredicate: nil,
+                quantitySamplePredicate: samplePredicate,
                 options: options,
                 anchorDate: anchorDate,
-                intervalComponents: interval.dateComponents
+                intervalComponents: intervalComponents
             )
 
             query.initialResultsHandler = { [weak self] _, collection, error in

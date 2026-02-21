@@ -1,17 +1,14 @@
 import Foundation
 
-// TODO: Implement body-fat percentage calculations to implement
-// Hall's NIH dynamic model of energy imbalance
-
 /// Weight analytics service for maintenance calorie estimation.
 /// Implements weighted linear regression on weight trends to estimate energy balance.
 ///
 /// ## Algorithm
 /// Uses a configurable window (default 28 days) with exponential decay weighting:
 /// 1. Weighted linear regression on weight data → raw slope (recent data weighted higher)
-/// 2. Raw maintenance = EWMA(intake, α=0.1) - (slope × ρ / 7)
-/// 3. Confidence = (points/minPoints) × (span/windowDays)
-/// 4. Final maintenance = raw × confidence + fallback × (1 - confidence)
+/// 2. Raw maintenance = EWMA(intake, α=0.1) - (slope x ρ / 7)
+/// 3. Confidence = (points/minPoints) x (span/windowDays)
+/// 4. Final maintenance = raw x confidence + fallback x (1 - confidence)
 ///
 /// ## Two-Tier Fallback
 /// When `fallbackMaintenance` is set to a personal historical estimate (from a wider
@@ -33,6 +30,9 @@ public struct MaintenanceService: Sendable, Codable {
     /// Fallback maintenance when confidence is low (kcal/day).
     /// Use a personal historical estimate when available, otherwise BaselineMaintenance.
     let fallbackMaintenance: Double
+    /// Reference date for window calculations (set at construction time).
+    /// Prevents drift when deserialized from cache (e.g. widgets).
+    let referenceDate: Date
 
     /// Initialize with configurable window and fallback.
     /// - Parameters:
@@ -53,14 +53,15 @@ public struct MaintenanceService: Sendable, Codable {
         self.bodyFatPercentages = bodyFatPercentages
         self.windowDays = windowDays
         self.fallbackMaintenance = fallbackMaintenance
+        self.referenceDate = Date()
     }
 
     /// Energy per unit weight change (kcal/kg).
     /// Computed via Forbes partition model when body fat % is available,
     /// otherwise falls back to `DefaultRho` (7350).
-    var rho: Double {
+    public var rho: Double {
         guard let bf = latestBodyFat,
-              let latestWeight = latestWeight
+            let latestWeight = latestWeight
         else { return DefaultRho }
         let fatMass = bf * latestWeight
         let p = fatMass / (fatMass + ForbesConstant)
@@ -100,14 +101,14 @@ public struct MaintenanceService: Sendable, Codable {
     /// Weights within the regression window.
     private var windowWeights: [Date: Double] {
         let cal = Calendar.autoupdatingCurrent
-        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
+        let cutoff = referenceDate.adding(-windowDays, .day, using: cal) ?? referenceDate
         return dailyWeights.filter { $0.key >= cutoff }
     }
 
     /// Body-fat values within the regression window.
     private var windowBodyFat: [Date: Double] {
         let cal = Calendar.autoupdatingCurrent
-        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
+        let cutoff = referenceDate.adding(-windowDays, .day, using: cal) ?? referenceDate
         return dailyBodyFat.filter { $0.key >= cutoff }
     }
 
@@ -143,7 +144,7 @@ public struct MaintenanceService: Sendable, Codable {
 
     /// Weight data confidence factor (0-1) based on data quality within the window.
     /// Considers both density (points/minPoints) and span (span/windowDays).
-    /// Formula: confidence = densityFactor × spanFactor
+    /// Formula: confidence = densityFactor x spanFactor
     public var confidence: Double {
         let densityFactor = min(1.0, Double(dataPointCount) / Double(MinWeightDataPoints))
         let spanFactor = min(1.0, dataSpanDays / Double(windowDays))
@@ -166,7 +167,7 @@ public struct MaintenanceService: Sendable, Codable {
     /// Intake estimate, blended toward fallback based on calorie data confidence.
     /// When calorie data is sparse, blends toward the fallback (personal history or baseline).
     /// When no calorie data exists at all, returns the fallback directly.
-    private var blendedIntake: Double {
+    public var blendedIntake: Double {
         guard let smoothed = calories.longTermSmoothedIntake else {
             return fallbackMaintenance
         }
@@ -175,7 +176,7 @@ public struct MaintenanceService: Sendable, Codable {
 
     /// Weight slope blended toward 0 (stable weight) based on weight data confidence.
     /// When weight data is sparse, assumes weight is stable (slope = 0).
-    private var blendedSlope: Double {
+    public var blendedSlope: Double {
         return weightSlope * confidence
     }
 
@@ -193,7 +194,7 @@ public struct MaintenanceService: Sendable, Codable {
     /// Each component fades to its own neutral fallback independently:
     /// - Intake → fallbackMaintenance (when calorie data is sparse)
     /// - Slope → 0 (when weight data is sparse, assume stable weight)
-    /// Then: M = blendedIntake - (blendedSlope × ρ / 7)
+    /// Then: M = blendedIntake - (blendedSlope x ρ / 7)
     public var maintenance: Double {
         return blendedIntake - (blendedSlope * rho / 7.0)
     }
@@ -203,10 +204,58 @@ public struct MaintenanceService: Sendable, Codable {
     /// Weight-only or calorie-only data still produces a useful estimate
     /// via independent component blending.
     public var isValid: Bool {
-        let hasWeightData = dataPointCount >= MinWeightDataPoints
+        let hasWeightData =
+            dataPointCount >= MinWeightDataPoints
             && dataSpanDays >= Double(windowDays) * 0.5
         let hasCalorieData = calories.isValid
         return hasWeightData || hasCalorieData
+    }
+
+    // MARK: - Accuracy Flags
+
+    /// Whether the weight slope was outside physiological bounds and had to be clamped.
+    /// When true, the measured weight trend was implausibly extreme (data error, water weight,
+    /// or scale inconsistency), and the maintenance estimate is less reliable.
+    public var isSlopeClamped: Bool {
+        rawWeightSlope < -MaxWeightLossPerWeek || rawWeightSlope > MaxWeightGainPerWeek
+    }
+
+    /// Whether the Forbes body-composition model is using the population-average default (DefaultRho)
+    /// because no body fat % data was available for this user.
+    ///
+    /// Impact: For users significantly leaner or heavier than the population average (~34% BF),
+    /// the energy-per-kg estimate used in the maintenance calculation will be off:
+    /// - Very lean athletes (10% BF): DefaultRho overestimates calories/kg by ~2.6×
+    /// - Very high BF users (45%+): DefaultRho underestimates calories/kg
+    ///
+    /// This matters most when `weightSlope` is non-zero. If weight is stable, rho has no effect
+    /// on the maintenance estimate.
+    public var isRhoEstimated: Bool {
+        latestBodyFat == nil
+    }
+
+    /// Whether the maintenance estimate is suspiciously low — a possible sign of metabolic
+    /// adaptation, chronic under-eating, or a data pipeline error.
+    ///
+    /// A maintenance estimate below `MinDailyBudget` (1000 kcal/day) is not physiologically
+    /// realistic for any adult. If triggered, the budget will have been floored to `MinDailyBudget`.
+    /// The user should be notified that their estimate may not be accurate.
+    public var isMaintenanceSuspect: Bool {
+        maintenance < MinDailyBudget
+    }
+
+    /// Rough daily calorie expenditure estimate based solely on body weight.
+    /// Uses ~30 kcal/kg/day (population average for moderate activity) as a weight-anchored
+    /// prior, giving a better Day 1 baseline than the flat population average (2200 kcal)
+    /// when no personal history exists yet.
+    ///
+    /// - Parameter kg: Body weight in kilograms.
+    /// - Returns: Estimated TDEE in kcal/day.
+    ///
+    /// **Note**: `BudgetDataService` should call this to initialize `fallbackMaintenance`
+    /// when the user has a recent weight entry but no usable historical maintenance estimate.
+    public static func roughBaseline(forWeight kg: Double) -> Double {
+        return kg * WeightBasedBaselineMultiplier
     }
 
     /// Computes the slope (kg/day) using weighted least-squares linear regression.
@@ -216,7 +265,7 @@ public struct MaintenanceService: Sendable, Codable {
         let sorted = windowWeights.sorted { $0.key < $1.key }
         guard sorted.count > 1 else { return 0 }
 
-        let today = Date()
+        let today = referenceDate
 
         // Calculate weights: w_i = decay^(days_ago)
         // More recent = higher weight

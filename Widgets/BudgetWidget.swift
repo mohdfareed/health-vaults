@@ -108,9 +108,13 @@ struct BudgetTimelineProvider: AppIntentTimelineProvider {
 
         // Fall back to cached data if fresh data is invalid/empty
         let cached = WidgetDataCache.loadBudget()
+        // Prefer cached valid data over fresh invalid data
+        let bestAvailable = (budgetDataService.budgetService?.isValid == true)
+            ? budgetDataService.budgetService
+            : (cached ?? budgetDataService.budgetService)
         return BudgetEntry(
             date: date,
-            budgetService: budgetDataService.budgetService ?? cached,
+            budgetService: bestAvailable,
             configuration: configuration
         )
     }

@@ -16,6 +16,9 @@ public struct IntakeAnalyticsService: Sendable, Codable {
     let windowDays: Int
     /// Minimum data points for full confidence (default: 14 for calories).
     let minDataPoints: Int
+    /// Reference date for window calculations (set at construction time).
+    /// Prevents drift when deserialized from cache (e.g. widgets).
+    let referenceDate: Date
 
     /// Initialize with default parameters for calorie tracking (28-day window).
     public init(
@@ -28,6 +31,7 @@ public struct IntakeAnalyticsService: Sendable, Codable {
         self.alpha = alpha
         self.windowDays = Int(RegressionWindowDays)
         self.minDataPoints = MinCalorieDataPoints
+        self.referenceDate = Date()
     }
 
     /// Initialize with custom window for macro tracking (typically 7-day window).
@@ -43,6 +47,7 @@ public struct IntakeAnalyticsService: Sendable, Codable {
         self.alpha = alpha
         self.windowDays = windowDays
         self.minDataPoints = minDataPoints
+        self.referenceDate = Date()
     }
 
     /// Daily intake totals grouped by date.
@@ -54,7 +59,7 @@ public struct IntakeAnalyticsService: Sendable, Codable {
     /// Intakes within the configured window.
     private var windowIntakes: [Date: Double] {
         let cal = Calendar.autoupdatingCurrent
-        let cutoff = Date().adding(-windowDays, .day, using: cal) ?? Date()
+        let cutoff = referenceDate.adding(-windowDays, .day, using: cal) ?? referenceDate
         return dailyIntakes.filter { $0.key >= cutoff }
     }
 
@@ -139,7 +144,6 @@ public struct IntakeAnalyticsService: Sendable, Codable {
     /// - Returns: Sₜ where gaps properly decay the previous smoothed value
     func computeEWMA(from entries: [(date: Date, value: Double)], alpha: Double) -> Double? {
         guard let first = entries.first else { return nil }
-        let cal = Calendar.autoupdatingCurrent
 
         var smoothed = first.value
         var previousDate = first.date

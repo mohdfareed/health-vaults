@@ -24,7 +24,7 @@ HealthVaults is an iOS application built with SwiftUI and SwiftData, integrated 
 - **ALWAYS** use the latest Swift features and APIs, updating any legacy code to modern standards.
 - **ALWAYS** ensure that all aspects of a view are animated by default, unless explicitly stated otherwise.
 - **ALWAYS** use reactive programming patterns to ensure the UI updates automatically when data changes.
-- You can't run the project directly. You can only build it with `swift build`. **DON'T** use any VSCode tasks.
+- You can't run the project directly. You can only build it with `./Scripts/build [-d]`. **DON'T** use any VSCode tasks.
 
 ## Core Assistant Guidelines
 

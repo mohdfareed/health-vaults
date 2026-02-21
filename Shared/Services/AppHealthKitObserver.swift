@@ -18,6 +18,10 @@ public actor AppHealthKitObserver {
     private nonisolated let logger = AppLogger.new(for: AppHealthKitObserver.self)
 
     private var isObserving = false
+    /// Debounce task for coalescing rapid-fire observer callbacks.
+    private var debounceTask: Task<Void, Never>?
+    /// Debounce interval in seconds for coalescing HealthKit callbacks.
+    private let debounceInterval: TimeInterval = 1.5
 
     private init() {
         self.healthKitService = HealthKitService.shared
@@ -43,10 +47,12 @@ public actor AppHealthKitObserver {
     }
 
     private func setupObservers() {
-        // Calculate broad date range for all health data (covers all use cases)
+        // Calculate broad date range for all health data
+        // Use widest historical stage (730 days) so historical data imports trigger refreshes
         let today = Date()
+        let maxStage = HistoricalFetchStages.last ?? RegressionWindowDays
         let startDate =
-            today.adding(-Int(RegressionWindowDays), .day, using: .autoupdatingCurrent) ?? today
+            today.adding(-Int(maxStage), .day, using: .autoupdatingCurrent) ?? today
         let endDate = today.adding(1, .day, using: .autoupdatingCurrent) ?? today
 
         // Observe all HealthKit data types the app uses
@@ -76,11 +82,20 @@ public actor AppHealthKitObserver {
     private func onHealthKitDataChanged(dataTypes: [HealthKitDataType]) async {
         logger.debug("HealthKit data changed for types: \(dataTypes.map(\.sampleType.identifier))")
 
-        // Notify the HealthDataNotifications service (for view reactivity)
-        await notifications.notifyDataChanged(for: dataTypes)
+        // Debounce: cancel any pending refresh and schedule a new one after the debounce interval.
+        // This coalesces rapid-fire callbacks (e.g., 7 observer queries firing from one food log)
+        // into a single refresh + widget reload.
+        debounceTask?.cancel()
+        debounceTask = Task {
+            try? await Task.sleep(for: .seconds(debounceInterval))
+            guard !Task.isCancelled else { return }
 
-        // Trigger widget updates on main actor
-        await refreshWidgets()
+            // Notify the HealthDataNotifications service (for view reactivity)
+            await notifications.notifyDataChanged(for: dataTypes)
+
+            // Trigger widget updates on main actor
+            await refreshWidgets()
+        }
     }
 
     @MainActor

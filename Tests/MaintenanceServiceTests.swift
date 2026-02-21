@@ -1,5 +1,6 @@
-import Testing
 import Foundation
+import Testing
+
 @testable import HealthVaultsShared
 
 // MARK: - MaintenanceService Tests
@@ -63,7 +64,7 @@ struct MaintenanceServiceTests {
     func minimumWeightPoints_partialConfidence() {
         let svc = MaintenanceService(
             calories: intakeService(intake: 2200, days: 28),
-            weights: sparseWeights(totalDaysBack: 28, stride: 4) // 7 points
+            weights: sparseWeights(totalDaysBack: 28, stride: 4)  // 7 points
         )
         let count = svc.dataPointCount
         #expect(count >= MinWeightDataPoints)
@@ -309,9 +310,10 @@ struct MaintenanceServiceTests {
             weights: weights
         )
         let hasWeightData = svc.dataPointCount >= MinWeightDataPoints
-        let spanOk = svc.weightDateRange.map {
-            $0.to.timeIntervalSince($0.from) / 86_400 >= Double(svc.windowDays) * 0.5
-        } ?? false
+        let spanOk =
+            svc.weightDateRange.map {
+                $0.to.timeIntervalSince($0.from) / 86_400 >= Double(svc.windowDays) * 0.5
+            } ?? false
         #expect(hasWeightData)
         #expect(spanOk)
         #expect(svc.isValid)
@@ -336,7 +338,7 @@ struct MaintenanceServiceTests {
             daysAgo(180): 72.0,
             daysAgo(150): 71.5,
             daysAgo(120): 71.0,
-            daysAgo(90): 70.5
+            daysAgo(90): 70.5,
         ]
         // Calories from 6 months ago
         let calories = (90...180).reduce(into: [Date: Double]()) { d, n in
@@ -355,5 +357,110 @@ struct MaintenanceServiceTests {
         #expect(svc.confidence > 0)
         // Maintenance should be a reasonable positive number
         #expect(svc.maintenance > 1500 && svc.maintenance < 4000)
+    }
+
+    // MARK: - Accuracy Flags
+
+    @Test("isSlopeClamped is true when raw slope exceeds MaxWeightLossPerWeek")
+    func isSlopeClamped_trueForExtremeLoss() {
+        let weights = linearWeightTrend(latestWeight: 60.0, slopePerWeek: -3.0, days: 28)
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 1500, days: 28),
+            weights: weights
+        )
+        #expect(svc.isSlopeClamped)
+    }
+
+    @Test("isSlopeClamped is true when raw slope exceeds MaxWeightGainPerWeek")
+    func isSlopeClamped_trueForExtremeGain() {
+        let weights = linearWeightTrend(latestWeight: 80.0, slopePerWeek: 2.0, days: 28)
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 3500, days: 28),
+            weights: weights
+        )
+        #expect(svc.isSlopeClamped)
+    }
+
+    @Test("isSlopeClamped is false for a normal loss trend")
+    func isSlopeClamped_falseForNormalTrend() {
+        let weights = linearWeightTrend(latestWeight: 70.0, slopePerWeek: -0.5, days: 28)
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 1800, days: 28),
+            weights: weights
+        )
+        #expect(!svc.isSlopeClamped)
+    }
+
+    @Test("isRhoEstimated is true when no body fat data provided")
+    func isRhoEstimated_trueWithNoBFData() {
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 2200, days: 28),
+            weights: constantWeights(value: 70.0, days: 28)
+        )
+        #expect(svc.isRhoEstimated)
+    }
+
+    @Test("isRhoEstimated is false when body fat data is provided")
+    func isRhoEstimated_falseWhenBFProvided() {
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 2200, days: 28),
+            weights: constantWeights(value: 70.0, days: 28),
+            bodyFatPercentages: [daysAgo(0): 0.20]
+        )
+        #expect(!svc.isRhoEstimated)
+    }
+
+    @Test("isMaintenanceSuspect is true when estimate falls below MinDailyBudget")
+    func isMaintenanceSuspect_trueWhenTooLow() {
+        // Simulate extreme restriction: 600 kcal/day with stable weight.
+        // With fallbackMaintenance = 600 and high confidence at 600 kcal intake,
+        // the maintenance estimate converges toward ~600 kcal (below MinDailyBudget).
+        let svc = MaintenanceService(
+            calories: IntakeAnalyticsService(
+                currentIntakes: [daysAgo(0): 600],
+                intakes: (0..<28).reduce(into: [:]) { d, i in d[daysAgo(i)] = 600.0 },
+                alpha: 0.25
+            ),
+            weights: constantWeights(value: 55.0, days: 28),
+            fallbackMaintenance: 600.0
+        )
+        #expect(svc.maintenance < MinDailyBudget)
+        #expect(svc.isMaintenanceSuspect)
+    }
+
+    @Test("isMaintenanceSuspect is false for normal maintenance values")
+    func isMaintenanceSuspect_falseForNormalMaintenance() {
+        let svc = MaintenanceService(
+            calories: intakeService(intake: 2200, days: 28),
+            weights: constantWeights(days: 28)
+        )
+        #expect(!svc.isMaintenanceSuspect)
+    }
+
+    @Test("roughBaseline is proportional to body weight at WeightBasedBaselineMultiplier")
+    func roughBaseline_proportionalToWeight() {
+        #expect(
+            MaintenanceService.roughBaseline(forWeight: 70.0) == 70.0
+                * WeightBasedBaselineMultiplier)
+        #expect(
+            MaintenanceService.roughBaseline(forWeight: 52.0) == 52.0
+                * WeightBasedBaselineMultiplier)
+        #expect(
+            MaintenanceService.roughBaseline(forWeight: 90.0) == 90.0
+                * WeightBasedBaselineMultiplier)
+    }
+
+    @Test(
+        "roughBaseline gives a better Day-1 estimate than BaselineMaintenance for extreme weights")
+    func roughBaseline_betterThanPopulationAverage_extremeWeights() {
+        // Petite 52 kg user: rough estimate ~1560 kcal vs flat baseline 2200
+        let petiteEstimate = MaintenanceService.roughBaseline(forWeight: 52.0)
+        #expect(petiteEstimate < BaselineMaintenance)
+        #expect(petiteEstimate >= MinDailyBudget)
+
+        // Large 100 kg user: rough estimate ~3000 kcal vs flat baseline 2200
+        let largeEstimate = MaintenanceService.roughBaseline(forWeight: 100.0)
+        #expect(largeEstimate > BaselineMaintenance)
+        #expect(largeEstimate <= MaxDailyBudget)
     }
 }
