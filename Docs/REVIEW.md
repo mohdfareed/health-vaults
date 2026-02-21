@@ -317,3 +317,152 @@ Comprehensive dead code removal:
 - `Shared/Views/UI/Design.swift`
 - `Shared/Views/Records/Definitions/CalorieRecord.swift`
 - `Shared/Views/Analytics/OverviewComponent.swift`
+
+---
+
+## Bug Fix & Cleanup Session (PLAN.md Implementation)
+
+### Objective
+Implement all items from PLAN.md: 4 bugs, additional fixes, algorithm internals overview, and code organization.
+
+### Bug 1: Week-Aligned Credit
+- `BudgetService.swift` — renamed `rollingIntakes` → `weekIntakes`; credit formula now uses week-aligned window: `credit = baseBudget × daysLogged − thisWeekIntake`
+- `BudgetDataService.swift` — replaced rolling 7-day fetch (`today - 7d → yesterday`) with week-aligned fetch (`today.previous(firstWeekday) → yesterday`); removed `ewmaRange` guard
+
+### Bug 2: Remove Redundant Calories IntakeAnalyticsService
+- `BudgetService.swift` — removed `calories: IntakeAnalyticsService` property; `remaining` and `currentIntake` now come from `weight.calories`; `confidence` returns only `weight.confidence`
+- `BudgetDataService.swift` — removed duplicate `calorieData` fetch (was identical to maintenance calorie data)
+- `OverviewComponent.swift` — all `.calories.X` → `.weight.calories.X`; removed "Calorie Data Confidence" row
+- `BudgetComponent.swift` — all `budget.calories.currentIntake` → `budget.weight.calories.currentIntake`
+
+### Bug 3: Background Crashes
+- **3a** `App.swift` — removed `#if !DEBUG fatalError()` so recovery path (erase+recreate → in-memory fallback) runs in all build configs
+- **3b** `HealthKitObservers.swift` — new `registerSingleObserver` and `stopSingleObserver` methods; retry now restarts only the failing observer, not all siblings
+- **3c** `AppHealthKitObserver.swift` — added 1.5s debounce via `debounceTask` to coalesce rapid-fire callbacks
+- **3d** `HealthKitStatistics.swift` — wrapped `fetchStatistics` in a task group with 15-second timeout; extracted `executeStatisticsQuery` private method; returns empty on timeout
+- **3e** `HealthKitObservers.swift` — removed per-observer `enableBackgroundDelivery` (kept only in `HealthKitService.init`)
+
+### Bug 4: `Date()` in Codable Analytics
+- `IntakeAnalyticsService.swift` — added stored `referenceDate` (set at construction); `windowIntakes` uses it instead of `Date()`
+- `MaintenanceService.swift` — added stored `referenceDate`; `windowWeights`, `windowBodyFat`, `computeWeightedSlope` use it instead of `Date()`
+
+### Additional Fixes
+- Credit subtitle `"kcal/day"` → `"kcal"` in OverviewComponent
+- Added `HKQuery.predicateForSamples(withStart:end:)` as `quantitySamplePredicate` in HealthKitStatistics (was `nil`)
+- `Calendar.current` → `.autoupdatingCurrent` in HealthKitStatistics
+- Force-unwrap fixes: `floored(...)!` → `?? referenceDate` in HealthKitStatistics; `weekday!` → `guard let` in StatisticsService
+- Removed dead code: `proteinSection`, `carbsSection`, `fatSection`, `macroDetailPage` in OverviewComponent
+- Observer coverage: 28 → 730 days in AppHealthKitObserver
+- Widget fallback: prefers cached valid data over fresh invalid data in BudgetWidget
+- Overview focus-aware loading: calories focus renders when budget loads (doesn't wait for macros)
+- Removed unused `let cal` in IntakeAnalyticsService `computeEWMA`
+
+### Algorithm Internals
+- `MaintenanceService.swift` — made `blendedIntake`, `blendedSlope`, `rho` public
+- `BudgetDataService.swift` — added `fallbackSource: String` property; `computeHistoricalMaintenance` returns `(maintenance, source)` tuple
+- `OverviewComponent.swift` — added "Algorithm Details" drill-in NavigationLink in Diagnostics section with rows: Energy Density (ρ), Weight Slope (raw/clamped/indicator), Maintenance Derivation (energy imbalance, blended intake, raw/fallback/final maintenance, fallback source), Confidence
+- Weight Trend row shows "(clamped)" suffix when raw != clamped
+
+### Concurrency Fix
+- `HealthKitStatistics.swift` — moved `NSPredicate` creation inside `executeStatisticsQuery` to avoid capturing non-Sendable type across task group boundary
+
+### Verification
+- `swift build` passes with zero errors
+
+---
+
+## Session: Unit Tests + Historical Threshold Fix (Feb 19, 2026)
+
+### Root Cause (0% Confidence / Baseline 2200 Bug)
+`computeHistoricalMaintenance` used `MinHistoricalWeightDataPoints = 28` and
+`MinHistoricalCalorieDataPoints = 56` as a binary gate before even building
+a `MaintenanceService`. A user with ~18 weight measurements over 2 years passes
+the gates used by the primary 28-day service (`MinWeightDataPoints = 7`) but
+failed the separate historical gate, so every stage fell through to baseline 2200.
+The confidence model inside `MaintenanceService` already handles data sparsity
+gracefully — the separate gate was a redundant, stricter, conflicting check.
+
+### Fixes
+- **`Config.swift`** — deleted `MinHistoricalWeightDataPoints` and
+  `MinHistoricalCalorieDataPoints`; extended `HistoricalFetchStages` to
+  `[180, 365, 730, 1825, 3650]` (up to 10 years, any personal data beats the baseline).
+- **`BudgetDataService.swift`** — historical gate now uses the same thresholds as
+  the primary window (`MinWeightDataPoints = 7`, `MinCalorieDataPoints = 14`).
+- **`OverviewComponent.swift`** — removed 7-Day Average row from "Data Used"
+  section (it displayed `smoothedIntake` α=0.25, which feeds no calculation;
+  maintenance uses `longTermSmoothedIntake` α=0.1 only).
+- **`HealthKitObservers.swift`** — fixed `NSPredicate` Sendable warning in retry
+  closure by rebuilding the predicate from `startDate`/`endDate` inside the closure.
+
+### Unit Tests Added (`Tests/` directory, Swift Testing framework)
+69 tests across 4 suites:
+- **`MaintenanceServiceTests`** — 22 tests: no-data baseline, confidence levels,
+  weight slope regression accuracy, physiological clamping, Forbes ρ model,
+  blending mechanics, isValid, returning-user sparse data.
+- **`IntakeAnalyticsServiceTests`** — 15 tests: empty data, single point, EWMA
+  convergence, gap-aware decay, window cutoff, confidence, long-term vs short-term
+  stability, custom windows.
+- **`BudgetServiceTests`** — 18 tests: baseBudget formula, credit week-aligned math,
+  credit only counts logged days, clamping ±500, budget formula, remaining, daysLeft.
+- **`HistoricalFallbackTests`** — 7 tests: monthly tracker with 6-month data,
+  user's real data pattern (~18 weight points over 2 years), minimum threshold
+  acceptance, gap-of-3-months recovery, new user → baseline, custom high fallback.
+- **`TestHelpers.swift`** — shared factories: `daysAgo()`, `constantWeights()`,
+  `linearWeightTrend()`, `sparseWeights()`, `intakeService()`.
+
+### Test Infrastructure
+- `Package.swift` — `.testTarget("HealthVaultsTests", path: "Tests")` for `swift test` CLI
+- `HealthVaults.xcodeproj` — two test targets:
+  - **`HealthVaultsTests`** (unit tests) — Swift Testing, no app host, imports `HealthVaultsShared`
+  - **`HealthVaultsUITests`** (UI tests) — XCTest, `TEST_TARGET_NAME = HealthVaults`, sources in `UITests/`
+- Run unit tests with `swift test`; all 69 pass in ~0.1 seconds
+- UI tests run from Xcode against a simulator (use `LaunchTests` scheme)
+
+---
+
+## Safety Audit & Fix Session (Feb 2026)
+
+### Objective
+Comprehensive safety review of math pipeline for edge cases, biological accuracy, and healthy habit validation. Added realistic life-scenario tests, identified 7 safety gaps, and fixed all.
+
+### Safety Gaps Fixed
+
+| # | Gap | Fix |
+|---|-----|-----|
+| 1 | No calorie floor (budget could reach 0) | `MinDailyBudget = 1000` in Config; `budget` clamped in `BudgetService` |
+| 2 | Hardcoded `500` in BudgetService | Moved to `MaxDailyAdjustment = 500.0` in Config |
+| 3 | Wrong EWMA comment (~2 week half-life) | Fixed to ~7-day half-life (matches alpha = 0.1) |
+| 4 | No flag when rho defaults to DefaultRho | `isRhoEstimated: Bool` on `MaintenanceService` |
+| 5 | No metabolic adaptation detection | `isMaintenanceSuspect: Bool` (maintenance < MinDailyBudget) |
+| 6 | No Day-1 weight anchor | `roughBaseline(forWeight:)` static (weight * 30 kcal/kg/day) |
+| 7 | No UI accuracy indicators | `AccuracyNote` in `BudgetComponent` with 5 per-flag conditions |
+
+### New Config Constants
+- `MinDailyBudget = 1000.0` -- safety floor
+- `MaxDailyBudget = 6000.0` -- sanity ceiling
+- `MaxDailyAdjustment = 500.0` -- was hardcoded in BudgetService
+- `WeightBasedBaselineMultiplier = 30.0` -- kcal/kg/day for rough cold-start estimate
+
+### New Flags and Helpers
+- `BudgetService.isAdjustmentClamped` -- raw credit/daysLeft exceeded +/-500 cap
+- `BudgetService.isBudgetClamped` -- floor or ceiling applied to final budget
+- `MaintenanceService.isSlopeClamped` -- raw slope outside physiological bounds
+- `MaintenanceService.isRhoEstimated` -- no BF% data, DefaultRho used
+- `MaintenanceService.isMaintenanceSuspect` -- maintenance < MinDailyBudget
+- `MaintenanceService.roughBaseline(forWeight:)` -- 30 kcal/kg/day cold-start anchor
+
+### UI: AccuracyNote (BudgetComponent)
+Five notes shown under the medium budget card (non-widget only):
+1. Not valid -- "Calibrating maintenance estimate" (animated)
+2. Budget clamped -- "Budget adjusted for safety" (orange)
+3. Maintenance suspect -- "Maintenance estimate may be too low" (orange)
+4. Rho estimated + non-zero slope -- "Body composition unknown"
+5. Slope clamped -- "Unusual weight trend detected"
+
+### Test Coverage Added
+- `Tests/ScenarioTests.swift` -- 35 realistic life-scenario tests (7 groups)
+- `Tests/MaintenanceServiceTests.swift` -- 9 new accuracy-flag tests
+- `Tests/BudgetServiceTests.swift` -- 5 new floor/ceiling/clamping tests
+- `Tests/TestHelpers.swift` -- 3 new scenario helpers
+
+**Final test count: 118 tests across 5 suites -- all pass.**

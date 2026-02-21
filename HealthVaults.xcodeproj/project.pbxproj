@@ -23,7 +23,7 @@
 			remoteGlobalIDString = 00F445592E0633F0006965F0;
 			remoteInfo = WidgetsExtension;
 		};
-		BB010000000014000000BB14 /* PBXContainerItemProxy (UITests → HealthVaults) */ = {
+		BB010000000014000000BB14 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = B8E4B4E8F12D5C40114FEED0 /* Project object */;
 			proxyType = 1;
@@ -270,7 +270,7 @@
 				AA010000000004000000AA04 /* HealthVaultsShared in Frameworks */,
 			);
 		};
-		BB010000000009000000BB09 /* Frameworks (UITests) */ = {
+		BB010000000009000000BB09 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			files = (
 			);
@@ -278,6 +278,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		005BB5F22F4817B800108567 /* Recovered References */ = {
+			isa = PBXGroup;
+			children = (
+				BB010000000003000000BB03 /* UITests */,
+			);
+			name = "Recovered References";
+			sourceTree = "<group>";
+		};
 		007EA9632E0714FA00002170 /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -311,6 +319,7 @@
 				3880958F05D30BD1F8C84246 /* .gitignore */,
 				00F4455B2E0633F0006965F0 /* Frameworks */,
 				007EA9632E0714FA00002170 /* Products */,
+				005BB5F22F4817B800108567 /* Recovered References */,
 			);
 			sourceTree = "<group>";
 		};
@@ -435,11 +444,13 @@
 						CreatedOnToolsVersion = 26.0;
 						DevelopmentTeam = B67CHZC3GP;
 						TestTargetID = 73A6ABB94F5170F06A130A21;
-					};				BB010000000001000000BB01 = {
-					CreatedOnToolsVersion = 26.0;
-					DevelopmentTeam = B67CHZC3GP;
-					TestTargetID = 73A6ABB94F5170F06A130A21;
-				};				};
+					};
+					BB010000000001000000BB01 = {
+						CreatedOnToolsVersion = 26.0;
+						DevelopmentTeam = B67CHZC3GP;
+						TestTargetID = 73A6ABB94F5170F06A130A21;
+					};
+				};
 			};
 			buildConfigurationList = 5AA6211D2EF68453E1C8A500 /* Build configuration list for PBXProject "HealthVaults" */;
 			developmentRegion = en;
@@ -477,12 +488,12 @@
 			files = (
 			);
 		};
-		CED828E9F6D4D6B92B04EC10 /* Resources */ = {
+		BB010000000010000000BB10 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
 		};
-		BB010000000010000000BB10 /* Resources (UITests) */ = {
+		CED828E9F6D4D6B92B04EC10 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			files = (
 			);
@@ -505,7 +516,7 @@
 			files = (
 			);
 		};
-		BB010000000008000000BB08 /* Sources (UITests) */ = {
+		BB010000000008000000BB08 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
 			);
@@ -530,7 +541,7 @@
 			isa = PBXTargetDependency;
 			productRef = AA010000000006000000AA06 /* HealthVaultsShared */;
 		};
-		BB010000000015000000BB15 /* PBXTargetDependency (UITests → HealthVaults) */ = {
+		BB010000000015000000BB15 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 73A6ABB94F5170F06A130A21 /* HealthVaults */;
 			targetProxy = BB010000000014000000BB14 /* PBXContainerItemProxy */;
@@ -679,6 +690,36 @@
 			};
 			name = Release;
 		};
+		BB010000000011000000BB11 /* Debug configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
+				PRODUCT_NAME = HealthVaultsUITests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HealthVaults;
+			};
+			name = Debug;
+		};
+		BB010000000012000000BB12 /* Release configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEVELOPMENT_TEAM = B67CHZC3GP;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
+				PRODUCT_NAME = HealthVaultsUITests;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = HealthVaults;
+			};
+			name = Release;
+		};
 		C93DA12F58F5072763C99728 /* Debug configuration for PBXProject "HealthVaults" */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -816,36 +857,6 @@
 			};
 			name = Debug;
 		};
-		BB010000000011000000BB11 /* Debug configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEVELOPMENT_TEAM = B67CHZC3GP;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
-				PRODUCT_NAME = HealthVaultsUITests;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = HealthVaults;
-			};
-			name = Debug;
-		};
-		BB010000000012000000BB12 /* Release configuration for PBXNativeTarget "HealthVaultsUITests" */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				DEVELOPMENT_TEAM = B67CHZC3GP;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.MohdFareed.HealthVaults.UITests;
-				PRODUCT_NAME = HealthVaultsUITests;
-				SDKROOT = iphoneos;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = HealthVaults;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -873,14 +884,6 @@
 			);
 			defaultConfigurationName = Debug;
 		};
-		E64043FA51E8E4C1BD7B05E5 /* Build configuration list for PBXNativeTarget "HealthVaults" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				EA75B97BE52E905FB580AA81 /* Debug configuration for PBXNativeTarget "HealthVaults" */,
-				DBEA588AD83A663DC0B4BE95 /* Release configuration for PBXNativeTarget "HealthVaults" */,
-			);
-			defaultConfigurationName = Release;
-		};
 		BB010000000013000000BB13 /* Build configuration list for PBXNativeTarget "HealthVaultsUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -888,6 +891,14 @@
 				BB010000000012000000BB12 /* Release configuration for PBXNativeTarget "HealthVaultsUITests" */,
 			);
 			defaultConfigurationName = Debug;
+		};
+		E64043FA51E8E4C1BD7B05E5 /* Build configuration list for PBXNativeTarget "HealthVaults" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EA75B97BE52E905FB580AA81 /* Debug configuration for PBXNativeTarget "HealthVaults" */,
+				DBEA588AD83A663DC0B4BE95 /* Release configuration for PBXNativeTarget "HealthVaults" */,
+			);
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 

@@ -2,11 +2,11 @@
 
 1. **Session Kickoff**
    - Prompt the user for the session's objective, scope, constraints, and success criteria.
-   - Record these in `REVIEW.md`.
+   - Record these in `Docs/REVIEW.md`.
 
 2. **Interrogative Dialog**
    - Lead with open-ended, probing questions to uncover assumptions, requirements, and edge cases.
-   - After each answer, summarize insights and update `REVIEW.md`.
+   - After each answer, summarize insights and update `Docs/REVIEW.md`.
 
 3. **Visual Modeling**
    - Use Mermaid diagrams and structured outlines to map components, flows, and interactions.
@@ -14,10 +14,10 @@
 
 4. **Converge on Solution**
    - Define the agreed design's interfaces, data contracts, sequence steps, or API surfaces.
-   - Document final artifacts directly in `REVIEW.md`.
+   - Document final artifacts directly in `Docs/REVIEW.md`.
 
 5. **Action Items & Follow-Up**
-   - List any unresolved questions and next steps in `REVIEW.md`.
+   - List any unresolved questions and next steps in `Docs/REVIEW.md`.
    - Clarify ownership, deadlines, and completion criteria.
 
 6. **Session Closure**

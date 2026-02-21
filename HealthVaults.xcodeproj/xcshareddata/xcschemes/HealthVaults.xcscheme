@@ -30,7 +30,7 @@
       shouldUseLaunchSchemeArgsEnv = "YES">
       <TestPlans>
          <TestPlanReference
-            reference = "container:HealthVaults.xctestplan"
+            reference = "container:HealthVaults.xcodeproj/HealthVaults.xctestplan"
             default = "YES">
          </TestPlanReference>
       </TestPlans>
