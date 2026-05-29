@@ -2,6 +2,7 @@
   "recommendations": [
     "swiftlang.swift-vscode",
     "sweetpad.sweetpad",
+    "donjayamanne.python-extension-pack",
     // tools
     "streetsidesoftware.code-spell-checker",
     "exodiusstudios.comment-anchors",

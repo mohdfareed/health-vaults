@@ -26,7 +26,7 @@ enum RecordPeriod: String, CaseIterable, Identifiable {
 
 /// A bucket of records grouped by a time period.
 struct RecordBucket<T: HealthData>: Identifiable {
-    let id: Date // bucket start date
+    let id: Date  // bucket start date
     let records: [T]
     let aggregation: AggregationType
 
@@ -107,7 +107,7 @@ struct RecordList<T: HealthData>: View {
             }
         }
         #if os(iOS)
-        .listSectionSpacing(.compact)
+            .listSectionSpacing(.compact)
         #endif
         .overlay {
             if records.isEmpty && !$records.isLoading {
@@ -291,7 +291,7 @@ private struct BucketRow<T: HealthData>: View {
             let end = calendar.date(byAdding: .day, value: 6, to: date) ?? date
             let startStr = date.formatted(.dateTime.month(.abbreviated).day())
             let endStr = end.formatted(.dateTime.month(.abbreviated).day().year())
-            return "\(startStr) – \(endStr)"
+            return "\(startStr) - \(endStr)"
         case .month:
             return date.formatted(.dateTime.month(.wide).year())
         }
@@ -317,7 +317,7 @@ private struct BucketDetailView<T: HealthData>: View {
     /// Default date for new entries: end of bucket range or today, whichever is earlier.
     private var defaultDate: Date {
         guard let component = period.calendarComponent,
-              let interval = locale.calendar.dateInterval(of: component, for: bucket.id)
+            let interval = locale.calendar.dateInterval(of: component, for: bucket.id)
         else { return Date() }
         // Last moment of the bucket range, but never in the future
         let bucketEnd = interval.end.addingTimeInterval(-1)
@@ -392,7 +392,7 @@ private struct BucketDetailView<T: HealthData>: View {
             let end = calendar.date(byAdding: .day, value: 6, to: bucket.id) ?? bucket.id
             let startStr = bucket.id.formatted(.dateTime.month(.abbreviated).day())
             let endStr = end.formatted(.dateTime.month(.abbreviated).day())
-            return "\(startStr) – \(endStr)"
+            return "\(startStr) - \(endStr)"
         case .month:
             return bucket.id.formatted(.dateTime.month(.wide).year())
         }

@@ -1,5 +1,11 @@
+# Swift
 .build/
 .swiftpm/
 
+# Xcode
 *xcuserdata/
 buildServer.json
+
+# Python model workbench
+*.venv/
+*__pycache__/

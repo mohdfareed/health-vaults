@@ -14,11 +14,11 @@ Three time series (all may be empty/sparse):
 
 $$W = \{(t_i, w_i)\}, \quad C = \{(t_j, c_j)\}, \quad B = \{(t_k, b_k)\}$$
 
-Weight (kg), calories (kcal), body fat (fraction 0–1).
+Weight (kg), calories (kcal), body fat (fraction 0-1).
 
 ### Output
 
-$M$ (kcal/day), $q$ (confidence, 0–1).
+$M$ (kcal/day), $q$ (confidence, 0-1).
 
 ### Core Equation
 
@@ -116,4 +116,4 @@ $$B = \text{clamp}(B_0 + \delta,\ 1000,\ 6000)$$
 | Weight mult | 30 | kcal/kg/day fallback |
 | Stages | 180…3650 | Historical windows (days) |
 | $\delta$ cap | ±500 | Credit spread (kcal/day) |
-| $B$ bounds | 1000–6000 | Budget clamp (kcal/day) |
+| $B$ bounds | 1000-6000 | Budget clamp (kcal/day) |

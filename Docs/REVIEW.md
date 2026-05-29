@@ -1,17 +1,15 @@
 # HealthVaults Project Review
 
-## Current State (Feb 16, 2026)
-
-### Architecture Overview
+## Architecture
 
 **Data Flow:**
-- **HealthKit** → Source of truth for health metrics
-- **SwiftData** → Local store for app-created entries, synced to HealthKit
-- **AppStorage** → User preferences (units, theme, goals)
-- **DataQuery** → Property wrapper for paginated HealthKit queries
-- **HealthDataNotifications** → Observable service for data change events
+- **HealthKit** → source of truth for health metrics
+- **SwiftData** → local store for app-created entries, synced to HealthKit
+- **AppStorage** → user preferences (units, theme, goals)
+- **DataQuery** → property wrapper for paginated HealthKit queries
+- **HealthDataNotifications** → observable service for data change events
 
-### Key Components
+**Key Components:**
 
 | Component | Purpose |
 |-----------|---------|
@@ -20,288 +18,40 @@
 | `.refreshOnHealthDataChange` | View modifier that triggers action on data change |
 | `RecordList` | Uses `DataQuery` + `refreshOnHealthDataChange` for reactive updates |
 | `BudgetDataService` | Calculates daily budget from maintenance + goal + credit |
+| `WidgetDataCache` | Caches last-known-good analytics in SharedDefaults for widget fallback |
 
-### Budget System
+## Budget System
 
-**Core Formula:**
 ```
 Today's Budget = Maintenance + Goal + Credit Adjustment
 ```
 
-**Key Concepts:**
-- **Maintenance**: Calories you burn per day (learned from weight trends)
-- **Credit**: Over/under from past 7 days, spread to next week reset
+- **Maintenance**: TDEE learned from weight trends via EWMA + WLS regression
+- **Credit**: `baseBudget × daysLogged − thisWeekIntake` (week-aligned)
 - **Credit Adjustment**: `credit / daysLeft`, capped at ±500 kcal/day
+- **Safety**: floor 1000, ceiling 6000 kcal/day
 
-### Widget Updates
-- `AppHealthKitObserver` - listens to HealthKit changes, reloads widgets
-- `AppLocale` bindings - reload on unit/firstDayOfWeek change
-- `GoalsView` - reload on goals save
-- `WidgetDataCache` - caches last-known-good data in SharedDefaults for fallback
+**Analytics Pipeline:** EWMA intake → WLS weight slope → Forbes ρ → Confidence blend → Maintenance → Budget
 
----
+**Flags:** `isSlopeClamped`, `isRhoEstimated`, `isMaintenanceSuspect`, `isAdjustmentClamped`, `isBudgetClamped`
 
-## Bug Fixes (Feb 16, 2026)
-
-### Background Crash Fix
-
-**Root cause**: Infinite observer retry loop in `HealthKitObservers.swift`. When
-`HKObserverQuery` errored, it retried every 5 seconds forever with no cap, keeping
-the app awake until the iOS watchdog killed it.
-
-**Fixes applied:**
-1. **Capped retries at 3** with exponential backoff (5s → 15s → 45s). Retry counts
-   stored per observer key in `observerRetryCounts` dictionary.
-2. **Serialized `activeObservers` access** using existing `observerQueue` — all
-   reads/writes now go through `observerQueue.sync {}` to prevent data races.
-3. **Stored NotificationCenter observer token** — `unitObserverToken` property
-   prevents leaked observer; closure uses `[weak self]`.
-
-**Files changed:**
-- `Shared/Services/HealthKit/HealthKitService.swift` — added retry state, token property
-- `Shared/Services/HealthKit/HealthKitObservers.swift` — retry cap, queue serialization
-- `Shared/Services/HealthKit/HealthKitUnits.swift` — stored observer token, `[weak self]`
-
-### Widget Reset Fix
-
-**Root cause**: No cached fallback existed — when widget timeline generation failed
-or produced invalid data, it showed baseline + zeroes. Additionally, a new
-ModelContainer was created per timeline generation causing SQLite contention.
-
-**Fixes applied:**
-1. **Widget data cache** — `WidgetDataCache` enum in `WidgetsBundle.swift` saves
-   last-known-good `BudgetService` and `MacrosAnalyticsService` as JSON in
-   SharedDefaults. Both service types made `Codable`. Widget falls back to cached
-   data when fresh HealthKit data is invalid/empty.
-2. **Static ModelContainer cache** — `WidgetsSettings.cachedContainer` avoids
-   creating a new SQLite connection on every timeline generation.
-3. **Analytics types made Codable** — `IntakeAnalyticsService`, `MaintenanceService`,
-   `BudgetService`, `MacrosAnalyticsService` all gained `Codable` conformance.
-
-**Files changed:**
-- `Widgets/WidgetsBundle.swift` — `WidgetDataCache`, cached container
-- `Widgets/BudgetWidget.swift` — cache save/load
-- `Widgets/MacrosWidget.swift` — cache save/load
-- `Shared/Services/Analytics/*.swift` — `Codable` conformance
-
----
-
-## Codebase Cleanup (Feb 16, 2026)
-
-Comprehensive dead code removal:
-
-**Removed:**
-- `View.transform()` — unused extension (CoreService.swift)
-- `AppError.runtimeError` case — no callers (Core.swift)
-- `Query.Settings` typealias — unused (SettingsService.swift)
-- `UnitMass.standardDrink` — never referenced (Units.swift)
-- `UnitDuration.weeks` — never referenced (Units.swift)
-- `stopAllObservers()` — never called (HealthKitObservers.swift)
-- `HKWorkoutBuilder` extension — dead code (HealthKitCore.swift)
-- `fetchSamples(for: HealthKitDataType)` wrapper — unused (HealthKitQueries.swift)
-- `Sequence.points()` overloads, `[Date: Double].points` — unused (StatisticsService.swift)
-- Stale TODOs, `DisplayAlpha`, `MaxDailyAdjustment` — unused (Config.swift)
-- All commented-out `activeCalories`/`basalCalories` cases across HealthKit files
-
-**Fixed:**
-- `fetchDietarySamples` / `fetchAlcoholSamples` — bug where `finalPredicate` was built but original `predicate` was passed instead
-- `observerKey` visibility — changed from `public` to `internal` (only used internally)
-- Collapsed duplicate `sampleType`/`quantityType` in HealthKitCore (sampleType now delegates)
-
-**Removed unused imports:**
-- `SwiftUI` from HealthKitCore, HealthKitQueries, HealthKitObservers, Authentication
-- `SwiftData`/`SwiftUI`/`WidgetKit` from all analytics services
-- `SwiftData` from SettingsService, `HealthKit` from Weight.swift
-
----
+**AccuracyNote** (BudgetComponent): 5 conditions shown under budget card — calibrating, safety, suspect maintenance, unknown BF%, unusual trend.
 
 ## Key Patterns
 
-- Use `.task` with `hasLoaded` guard for one-time loads
-- Use `.refreshOnHealthDataChange` for reactive data updates
-- Use `DataQuery.removeItem()` for optimistic deletes
-- Use `hasAppeared` state to control animations on initial load
+- `.task` with `hasLoaded` guard for one-time loads
+- `.refreshOnHealthDataChange` for reactive data updates
+- `DataQuery.removeItem()` for optimistic deletes
+- `hasAppeared` state to control animations on initial load
 - Observer retries: max 3, exponential backoff, then give up
+- BF% stored as fraction (0–1) in HealthKit, displayed as percentage (0–100)
+- Record lists support period bucketing (All/Day/Week/Month) with aggregate values
 
-## Version
-- App version: 1.6 (build 1)
+## Icon Convention (Design.swift)
 
----
-
-## Current Session (Feb 17, 2026)
-
-### Objective
-- Run a user-facing copy usability review focused on permission language and misleading phrasing.
-
-### Decisions
-- Updated both Health read and write usage descriptions to accurate, user-centric language.
-- Removed `NSHealthClinicalHealthRecordsShareUsageDescription` from build settings because no clinical-record APIs are used.
-- Kept scope focused on misleading/awkward text only (no feature or flow changes).
-
-### Notes
-- HealthKit usage strings are defined via Xcode build settings in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj#L425-L649).
-- Supported HealthKit types are enumerated in [Shared/Services/HealthKit/HealthKitCore.swift](Shared/Services/HealthKit/HealthKitCore.swift#L7-L29).
-- App-wide HealthKit observation uses those types in [Shared/Services/AppHealthKitObserver.swift](Shared/Services/AppHealthKitObserver.swift#L33-L72).
-- Body fat % read is queried directly in [Shared/Services/HealthData/BudgetDataService.swift](Shared/Services/HealthData/BudgetDataService.swift#L182-L220).
-- HealthKit authorization (read/write sets) is defined in [Shared/Services/HealthKit/Authentication.swift](Shared/Services/HealthKit/Authentication.swift#L12-L35).
-
-### Updated Copy
-- Permission strings in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj#L425-L649)
-- About text in [Shared/Views/AboutView.swift](Shared/Views/AboutView.swift#L20-L38)
-- Settings health footer in [App/SettingsView.swift](App/SettingsView.swift#L43-L49)
-- Widget and list phrasing in [Widgets/MacrosWidget.swift](Widgets/MacrosWidget.swift#L22-L49), [Widgets/BudgetWidget.swift](Widgets/BudgetWidget.swift#L46-L49), and [Shared/Views/Records/RecordList.swift](Shared/Views/Records/RecordList.swift#L79-L83)
-
-### Copy Rationale
-- Permission text should explain user benefit and Apple Health data flow, not only technical read/write verbs.
-- Read copy now clarifies the app can use data aggregated from other apps through Apple Health.
-- Write copy now clarifies entries created in HealthVaults become available to Apple Health and other permitted apps.
-
----
-
-## Implementation Session (Feb 17, 2026) — UI TODO Fixes
-
-### Objective
-- Fix permissions status indicator behavior, precision-sensitive computed actions, settings ordering, dashboard budget footnote copy, keyboard toolbar alignment, and README TODO tracking.
-
-### Decisions Applied
-- Health permissions indicator uses tri-state semantics: no access (red), partial access (yellow), full access (green).
-- Authorization aggregation now evaluates all required HealthKit types including body fat percentage read access.
-- Computed-value visibility now compares formatted display values (precision-aware) instead of `Double.ulpOfOne`.
-- Dashboard calorie footnote remains under the dashboard card (not inside widgets) and includes exact days remaining.
-- Keyboard toolbar Done button is left-most in shared numeric input toolbars.
-- Settings section order is Goals first, then General.
-
-### Files Updated
-- `Shared/Services/HealthKit/Authentication.swift`
-- `Shared/Views/AboutView.swift`
-- `Shared/Views/Records/RecordRow.swift`
-- `Shared/Views/Components/MeasurementField.swift`
-- `Shared/Views/Analytics/BudgetComponent.swift`
-- `App/SettingsView.swift`
-- `README.md`
-
-### Follow-up Fixes (same session)
-- Permissions indicator now animates status text/symbol changes with SwiftUI content transitions.
-- Authorization aggregate now checks writable HealthKit types only for tri-state status, fixing the missing green "all authorized" state.
-- Record keyboard toolbar now places Done first, before Invert/computed controls.
-- Dashboard calorie footnote visibility is now explicitly driven by `BudgetComponent(showDashboardFootnote:)` and enabled from `DashboardView`.
-- Computed value indicator keeps numeric-text digit animation and now includes fade transition on label content changes.
-- Floating global add (`+`) menu now hides while keyboard is visible to avoid large upward displacement caused by keyboard + accessory toolbar safe-area changes.
-- Dashboard calorie footnote copy updated to concise formula wording with explicit divisor and days-remaining explanation.
-- Goals page segmented control moved outside the form rows (top bar-style container) to remove extra white cell background and keep native separation between Calories and Macros.
-- Overview page redesigned as a screenshot-friendly diagnostic report: Snapshot, Calorie Inputs, Maintenance Model, Budget Math, and inline Macros summary sections.
-- Removed macro drill-down dependency in Overview detail flow so one screenshot can capture most algorithm inputs/outputs.
-- Copy updated to make formulas and model behavior easier to understand for non-technical users while preserving diagnostic value.
-- Dashboard overview entry removed; calories and macros cards now navigate directly to focused overview pages (`Calorie Overview` / `Macros Overview`).
-- Goals header adjusted to a standard inline-title + in-form segmented control layout to avoid oversized top inset and hidden title.
-- Added dashboard-only calibration indicator under the calories card content using periodic swing animation (non-continuous), replacing prior continuous spinner behavior.
-
----
-
-## UI Changes (Feb 16, 2026)
-
-### Goals Page
-- `GoalView` moved from inline Form sections to a dedicated page via NavigationLink
-- Accessible from Settings via "Goals" row with target icon
-- Contains same sections: Calorie Goal (maintenance + adjustment) and Macros Breakdown
-
-### Dashboard Budget Note
-- `DashboardCard` now supports an optional `footer` string parameter
-- Calories card shows footer: "Budget = maintenance + goal adjustment + weekly credit ÷ days remaining"
-
-### Widget "Remaining" Label
-- `ValueView` now supports an optional `label` parameter to override the unit symbol
-- `CalorieContent` in `BudgetComponent` uses `label: "Remaining"` instead of showing "kcal"
-- Applies to both dashboard and medium widget budget displays
-
-### Staleness Indicator — Removed
-- `StalenessIndicator` view, timestamp keys/methods, and `cachedAt` properties removed
-- Feature was prototyped but dropped before release
-
----
-
-## Analytics Pipeline Update (Feb 17, 2026) — BF% Time-Series Integration
-
-### Objective
-- Replace single latest BF% usage with window-scoped BF% time-series in the budget/maintenance pipeline.
-
-### Decisions Applied
-- Promoted BF% to a first-class `HealthKitDataType` (`.bodyFatPercentage`) and enabled write support for app-created BF% entries.
-- Authorization now shares writable types only and reads all types; BF% no longer needs special-case read handling.
-- Budget pipeline now fetches BF% via `fetchStatistics(..., .daily, .discreteAverage)` for both:
-   - primary 28-day window
-   - each historical stage window (180/365/730)
-- `MaintenanceService` now accepts `bodyFatPercentages: [Date: Double]` instead of a single scalar.
-- `rho` now uses latest BF% in window with lookback fallback to latest available BF% in fetched data.
-- Added BF% to budget observers and reactive refresh lists so new BF% readings trigger recalculation.
-- Added full BF% record flow (model, query, form, list, add-menu entry) using existing record conventions.
-- Normalized BF% UI to percentage points (0...100) while storing/querying HealthKit as fractions (0...1).
-- Added dashboard explanatory footer text clarifying calories card semantics and credit icon meaning.
-- Added BF% rows to overview diagnostics (`Body Fat Used`, `Body Fat Data Points`, `Body Fat Data Range`).
-
-### Files Updated
-- `Shared/Services/HealthKit/HealthKitCore.swift`
-- `Shared/Services/HealthKit/Authentication.swift`
-- `Shared/Services/HealthKit/HealthKitStatistics.swift`
-- `Shared/Services/HealthKit/HealthKitUnits.swift`
-- `Shared/Services/HealthData/BudgetDataService.swift`
-- `Shared/Services/Analytics/MaintenanceService.swift`
-- `Shared/Services/AppHealthKitObserver.swift`
-- `Shared/Views/Analytics/BudgetComponent.swift`
-- `Shared/Views/Analytics/MacrosComponent.swift`
-
-### Validation
-- `swift build` passes.
-- Added explicit handling for `HKUnit.percent()` in unit mapping to avoid warning spam after BF% integration.
-
-### Xcode Build Fix (same session)
-- Fixed `WidgetsExtension` compile errors for `BodyFat.swift` (`HealthData`/`DataSource` not found) caused by folder-sync target membership drift.
-- Root cause: new BF% files were not added to `PBXFileSystemSynchronizedBuildFileExceptionSet` exclusions in [HealthVaults.xcodeproj/project.pbxproj](HealthVaults.xcodeproj/project.pbxproj).
-- Added the new files to both app/widgets shared-folder exception sets:
-   - `Models/DataModels/BodyFat.swift`
-   - `Services/HealthData/Queries/BodyFatQuery.swift`
-   - `Views/Records/Definitions/BodyFatRecord.swift`
-- Verified with `xcodebuild -project HealthVaults.xcodeproj -scheme HealthVaults -destination 'generic/platform=iOS Simulator' build` → `** BUILD SUCCEEDED **`.
-
-### UX Refinements (same session)
-- Calories Overview status row updated to `text → icon` order with a mini periodic spinning maintenance flame while calibrating.
-- Calories Overview data coverage moved under a dedicated `Diagnostics` section as a drill-in page (`Data Coverage`) and removed flat-section footer copy.
-- Dashboard legend footer redesigned as a symbolic key (`R`, `x/y`, and actual credit icon) instead of literal prose.
-- Record forms now show an inline permission warning when Health access is missing and present an alert on add/save/delete attempts without authorization.
-- Record lists now show an explicit empty-state message when no records are present due to missing Health permission.
-- Dashboard legend credit row spacing tightened by replacing `Label` with a compact icon+text `HStack`.
-- Macros remaining value now uses `label: "left"` (matching calories) instead of showing the unit symbol.
-- Dashboard legend shorthand updated from `R` to `Left` for immediate readability.
-- Dashboard legend copy further simplified to just `Left`.
-
-### Record List Bucketing (same session)
-- Added period picker (All / Day / Week / Month) to record lists via segmented control.
-- Records grouped into `RecordBucket<T>` with calendar-aware intervals via `AppLocale.calendar`.
-- Each bucket shows an aggregate value (sum for calories, average for weight/body fat) and record count.
-- Tapping a bucket navigates to a `BucketDetailView` showing the aggregate summary and individual records.
-- Added `AggregationType` enum (`.sum`, `.average`) to `HealthDataModel`.
-- Added `value: Double` property to `HealthData` protocol for generic aggregation.
-- Added `aggregateView: (Double) -> AnyView` to `RecordDefinition` — each data type provides a `ValueView` rendering the aggregate in its localized unit.
-- Empty state uses `ContentUnavailableView` as a list `.overlay` (Apple's recommended pattern) — picker hidden when empty.
-- All changes validated with `swift build`.
-
-### Icon/Color Consistency Audit (same session)
-- Centralized `Image.adjustment` (plusminus.circle, hierarchical) and `Image.budget` (target) in Design.swift.
-- Fixed `CalorieAdjustmentFieldDefinition` and `WeeklyCalorieAdjustmentFieldDefinition` tint: `.indigo` → `.calories` for domain consistency.
-- Fixed `BudgetFieldDefinition` and `WeeklyBudgetFieldDefinition` icons: inline `Image(systemName:)` → `Image.budget`.
-- Fixed OverviewComponent calories section icons to match field definitions:
-  - Maintenance: `Image.calories` → `Image.maintenance`
-  - Goal Adjustment: inline → `Image.adjustment`
-  - Base Budget: `Image.calories` → `Image.budget`
-  - Credit / Credit Adjustment: `Image.calories` → `Image.credit`
-  - Today's Budget: `Image.calories` → `Image.budget`
-- Reordered calories overview: Data Used section now appears above Budget Input.
-- Macros overview Base Budget also updated to `Image.budget`.
-
-**Icon convention (Design.swift):**
 | Concept | Icon | Color |
 |---------|------|-------|
-| Calories (generic) | `flame.fill` | `.calories` |
+| Calories | `flame.fill` | `.calories` |
 | Maintenance | `flame.gauge.open` (hierarchical) | `.calories` |
 | Adjustment | `plusminus.circle` (hierarchical) | `.calories` |
 | Budget | `target` | `.calories` |
@@ -313,156 +63,38 @@ Comprehensive dead code removal:
 | Fat | custom `avocado` | `.fat` (.green) |
 | Alcohol | `wineglass` | `.alcohol` (.indigo) |
 
-**Files changed:**
-- `Shared/Views/UI/Design.swift`
-- `Shared/Views/Records/Definitions/CalorieRecord.swift`
-- `Shared/Views/Analytics/OverviewComponent.swift`
+## Test Infrastructure
 
----
+- **118 tests** across 5 suites, all passing
+- `swift test` for unit tests (~0.1s); Xcode for UI tests
+- `Tests/TestHelpers.swift` — shared factories: `daysAgo()`, `constantWeights()`, `linearWeightTrend()`, etc.
+- `Tests/ScenarioTests.swift` — 35 life-scenario tests in 8 groups with biological invariant checks
 
-## Bug Fix & Cleanup Session (PLAN.md Implementation)
+## ModelLab
 
-### Objective
-Implement all items from PLAN.md: 4 bugs, additional fixes, algorithm internals overview, and code organization.
+- `ModelLab/model.py` — Python reimpl of IntakeAnalytics, Maintenance, Budget math
+- `ModelLab/constants.py` — mirrors Config.swift (Tunable vs Literature)
+- `ModelLab/sim.py` — Scenario generator + 6-panel pipeline plotter (`Scenario`, `generate()`, `plot_pipeline()`)
+- `ModelLab/lab.ipynb` — Sub-model reference charts (EWMA, WLS, Forbes, Confidence, Convergence, Budget)
+- `ModelLab/maintenance.ipynb` — Pipeline explorer: run scenarios through full maintenance calc, see every stage
+- `Scripts/lab.sh` — launches Jupyter via venv + pip
+- Open questions tracked in `Docs/PLAN_MODEL.md`
 
-### Bug 1: Week-Aligned Credit
-- `BudgetService.swift` — renamed `rollingIntakes` → `weekIntakes`; credit formula now uses week-aligned window: `credit = baseBudget × daysLogged − thisWeekIntake`
-- `BudgetDataService.swift` — replaced rolling 7-day fetch (`today - 7d → yesterday`) with week-aligned fetch (`today.previous(firstWeekday) → yesterday`); removed `ewmaRange` guard
+## Key Decisions
 
-### Bug 2: Remove Redundant Calories IntakeAnalyticsService
-- `BudgetService.swift` — removed `calories: IntakeAnalyticsService` property; `remaining` and `currentIntake` now come from `weight.calories`; `confidence` returns only `weight.confidence`
-- `BudgetDataService.swift` — removed duplicate `calorieData` fetch (was identical to maintenance calorie data)
-- `OverviewComponent.swift` — all `.calories.X` → `.weight.calories.X`; removed "Calorie Data Confidence" row
-- `BudgetComponent.swift` — all `budget.calories.currentIntake` → `budget.weight.calories.currentIntake`
+| Date | Decision | Why |
+|------|----------|-----|
+| Feb 22 | PLAN.md fully implemented | All bugs 1-4, additional fixes verified passing (118 tests) |
+| Feb 16 | Observer retries capped at 3 | Infinite retry caused background crashes |
+| Feb 16 | Widget data cache in SharedDefaults | Fallback when fresh HealthKit data is invalid |
+| Feb 16 | Analytics types made Codable | Widget caching + referenceDate for consistency |
+| Feb 17 | BF% promoted to first-class HealthKitDataType | Window-scoped time-series for Forbes ρ |
+| Feb 17 | Permission copy rewritten | Explain user benefit, not just technical read/write |
+| Feb 17 | Overview redesigned as diagnostic report | Screenshot-friendly, shows algorithm internals |
+| Feb 19 | Historical thresholds aligned with primary | Separate stricter gates caused 0% confidence bug |
+| Feb 19 | HistoricalFetchStages extended to 10 years | Any personal data beats baseline 2200 |
+| Feb 2026 | Safety floor/ceiling/flags added | Budget could reach 0; no metabolic adaptation warning |
+| Feb 21 | Scope rules added to AGENTS.md | Over-engineered ModelLab; solo project needs tight scope |
 
-### Bug 3: Background Crashes
-- **3a** `App.swift` — removed `#if !DEBUG fatalError()` so recovery path (erase+recreate → in-memory fallback) runs in all build configs
-- **3b** `HealthKitObservers.swift` — new `registerSingleObserver` and `stopSingleObserver` methods; retry now restarts only the failing observer, not all siblings
-- **3c** `AppHealthKitObserver.swift` — added 1.5s debounce via `debounceTask` to coalesce rapid-fire callbacks
-- **3d** `HealthKitStatistics.swift` — wrapped `fetchStatistics` in a task group with 15-second timeout; extracted `executeStatisticsQuery` private method; returns empty on timeout
-- **3e** `HealthKitObservers.swift` — removed per-observer `enableBackgroundDelivery` (kept only in `HealthKitService.init`)
-
-### Bug 4: `Date()` in Codable Analytics
-- `IntakeAnalyticsService.swift` — added stored `referenceDate` (set at construction); `windowIntakes` uses it instead of `Date()`
-- `MaintenanceService.swift` — added stored `referenceDate`; `windowWeights`, `windowBodyFat`, `computeWeightedSlope` use it instead of `Date()`
-
-### Additional Fixes
-- Credit subtitle `"kcal/day"` → `"kcal"` in OverviewComponent
-- Added `HKQuery.predicateForSamples(withStart:end:)` as `quantitySamplePredicate` in HealthKitStatistics (was `nil`)
-- `Calendar.current` → `.autoupdatingCurrent` in HealthKitStatistics
-- Force-unwrap fixes: `floored(...)!` → `?? referenceDate` in HealthKitStatistics; `weekday!` → `guard let` in StatisticsService
-- Removed dead code: `proteinSection`, `carbsSection`, `fatSection`, `macroDetailPage` in OverviewComponent
-- Observer coverage: 28 → 730 days in AppHealthKitObserver
-- Widget fallback: prefers cached valid data over fresh invalid data in BudgetWidget
-- Overview focus-aware loading: calories focus renders when budget loads (doesn't wait for macros)
-- Removed unused `let cal` in IntakeAnalyticsService `computeEWMA`
-
-### Algorithm Internals
-- `MaintenanceService.swift` — made `blendedIntake`, `blendedSlope`, `rho` public
-- `BudgetDataService.swift` — added `fallbackSource: String` property; `computeHistoricalMaintenance` returns `(maintenance, source)` tuple
-- `OverviewComponent.swift` — added "Algorithm Details" drill-in NavigationLink in Diagnostics section with rows: Energy Density (ρ), Weight Slope (raw/clamped/indicator), Maintenance Derivation (energy imbalance, blended intake, raw/fallback/final maintenance, fallback source), Confidence
-- Weight Trend row shows "(clamped)" suffix when raw != clamped
-
-### Concurrency Fix
-- `HealthKitStatistics.swift` — moved `NSPredicate` creation inside `executeStatisticsQuery` to avoid capturing non-Sendable type across task group boundary
-
-### Verification
-- `swift build` passes with zero errors
-
----
-
-## Session: Unit Tests + Historical Threshold Fix (Feb 19, 2026)
-
-### Root Cause (0% Confidence / Baseline 2200 Bug)
-`computeHistoricalMaintenance` used `MinHistoricalWeightDataPoints = 28` and
-`MinHistoricalCalorieDataPoints = 56` as a binary gate before even building
-a `MaintenanceService`. A user with ~18 weight measurements over 2 years passes
-the gates used by the primary 28-day service (`MinWeightDataPoints = 7`) but
-failed the separate historical gate, so every stage fell through to baseline 2200.
-The confidence model inside `MaintenanceService` already handles data sparsity
-gracefully — the separate gate was a redundant, stricter, conflicting check.
-
-### Fixes
-- **`Config.swift`** — deleted `MinHistoricalWeightDataPoints` and
-  `MinHistoricalCalorieDataPoints`; extended `HistoricalFetchStages` to
-  `[180, 365, 730, 1825, 3650]` (up to 10 years, any personal data beats the baseline).
-- **`BudgetDataService.swift`** — historical gate now uses the same thresholds as
-  the primary window (`MinWeightDataPoints = 7`, `MinCalorieDataPoints = 14`).
-- **`OverviewComponent.swift`** — removed 7-Day Average row from "Data Used"
-  section (it displayed `smoothedIntake` α=0.25, which feeds no calculation;
-  maintenance uses `longTermSmoothedIntake` α=0.1 only).
-- **`HealthKitObservers.swift`** — fixed `NSPredicate` Sendable warning in retry
-  closure by rebuilding the predicate from `startDate`/`endDate` inside the closure.
-
-### Unit Tests Added (`Tests/` directory, Swift Testing framework)
-69 tests across 4 suites:
-- **`MaintenanceServiceTests`** — 22 tests: no-data baseline, confidence levels,
-  weight slope regression accuracy, physiological clamping, Forbes ρ model,
-  blending mechanics, isValid, returning-user sparse data.
-- **`IntakeAnalyticsServiceTests`** — 15 tests: empty data, single point, EWMA
-  convergence, gap-aware decay, window cutoff, confidence, long-term vs short-term
-  stability, custom windows.
-- **`BudgetServiceTests`** — 18 tests: baseBudget formula, credit week-aligned math,
-  credit only counts logged days, clamping ±500, budget formula, remaining, daysLeft.
-- **`HistoricalFallbackTests`** — 7 tests: monthly tracker with 6-month data,
-  user's real data pattern (~18 weight points over 2 years), minimum threshold
-  acceptance, gap-of-3-months recovery, new user → baseline, custom high fallback.
-- **`TestHelpers.swift`** — shared factories: `daysAgo()`, `constantWeights()`,
-  `linearWeightTrend()`, `sparseWeights()`, `intakeService()`.
-
-### Test Infrastructure
-- `Package.swift` — `.testTarget("HealthVaultsTests", path: "Tests")` for `swift test` CLI
-- `HealthVaults.xcodeproj` — two test targets:
-  - **`HealthVaultsTests`** (unit tests) — Swift Testing, no app host, imports `HealthVaultsShared`
-  - **`HealthVaultsUITests`** (UI tests) — XCTest, `TEST_TARGET_NAME = HealthVaults`, sources in `UITests/`
-- Run unit tests with `swift test`; all 69 pass in ~0.1 seconds
-- UI tests run from Xcode against a simulator (use `LaunchTests` scheme)
-
----
-
-## Safety Audit & Fix Session (Feb 2026)
-
-### Objective
-Comprehensive safety review of math pipeline for edge cases, biological accuracy, and healthy habit validation. Added realistic life-scenario tests, identified 7 safety gaps, and fixed all.
-
-### Safety Gaps Fixed
-
-| # | Gap | Fix |
-|---|-----|-----|
-| 1 | No calorie floor (budget could reach 0) | `MinDailyBudget = 1000` in Config; `budget` clamped in `BudgetService` |
-| 2 | Hardcoded `500` in BudgetService | Moved to `MaxDailyAdjustment = 500.0` in Config |
-| 3 | Wrong EWMA comment (~2 week half-life) | Fixed to ~7-day half-life (matches alpha = 0.1) |
-| 4 | No flag when rho defaults to DefaultRho | `isRhoEstimated: Bool` on `MaintenanceService` |
-| 5 | No metabolic adaptation detection | `isMaintenanceSuspect: Bool` (maintenance < MinDailyBudget) |
-| 6 | No Day-1 weight anchor | `roughBaseline(forWeight:)` static (weight * 30 kcal/kg/day) |
-| 7 | No UI accuracy indicators | `AccuracyNote` in `BudgetComponent` with 5 per-flag conditions |
-
-### New Config Constants
-- `MinDailyBudget = 1000.0` -- safety floor
-- `MaxDailyBudget = 6000.0` -- sanity ceiling
-- `MaxDailyAdjustment = 500.0` -- was hardcoded in BudgetService
-- `WeightBasedBaselineMultiplier = 30.0` -- kcal/kg/day for rough cold-start estimate
-
-### New Flags and Helpers
-- `BudgetService.isAdjustmentClamped` -- raw credit/daysLeft exceeded +/-500 cap
-- `BudgetService.isBudgetClamped` -- floor or ceiling applied to final budget
-- `MaintenanceService.isSlopeClamped` -- raw slope outside physiological bounds
-- `MaintenanceService.isRhoEstimated` -- no BF% data, DefaultRho used
-- `MaintenanceService.isMaintenanceSuspect` -- maintenance < MinDailyBudget
-- `MaintenanceService.roughBaseline(forWeight:)` -- 30 kcal/kg/day cold-start anchor
-
-### UI: AccuracyNote (BudgetComponent)
-Five notes shown under the medium budget card (non-widget only):
-1. Not valid -- "Calibrating maintenance estimate" (animated)
-2. Budget clamped -- "Budget adjusted for safety" (orange)
-3. Maintenance suspect -- "Maintenance estimate may be too low" (orange)
-4. Rho estimated + non-zero slope -- "Body composition unknown"
-5. Slope clamped -- "Unusual weight trend detected"
-
-### Test Coverage Added
-- `Tests/ScenarioTests.swift` -- 35 realistic life-scenario tests (7 groups)
-- `Tests/MaintenanceServiceTests.swift` -- 9 new accuracy-flag tests
-- `Tests/BudgetServiceTests.swift` -- 5 new floor/ceiling/clamping tests
-- `Tests/TestHelpers.swift` -- 3 new scenario helpers
-
-**Final test count: 118 tests across 5 suites -- all pass.**
+## Version
+- App version: 1.6 (build 1)

@@ -216,7 +216,7 @@ struct ScenarioTests {
     /// Recent window (28d) has no weight → weight.confidence=0; calorie data drives estimate.
     @Test("Month weight then month calories: weight outside window, calorie-driven estimate")
     func monthWeightThenMonthCalories_caloriesDriveEstimate() {
-        // Weight data: 30–58 days ago (outside the 28-day regression window)
+        // Weight data: 30-58 days ago (outside the 28-day regression window)
         let weights: [Date: Double] = (30..<58).reduce(into: [:]) { d, i in d[daysAgo(i)] = 72.0 }
         // Calorie data: last 28 days
         let calories: [Date: Double] = (0..<28).reduce(into: [:]) { d, i in d[daysAgo(i)] = 2300 }
@@ -278,7 +278,7 @@ struct ScenarioTests {
     /// Old personal data should produce a better-than-generic estimate.
     @Test("6-month break with 365d window → personal historical data beats baseline")
     func sixMonthBreak_365dWindow_personalEstimate() {
-        // Data from 6–8 months ago (all within a 365-day window)
+        // Data from 6-8 months ago (all within a 365-day window)
         let weights: [Date: Double] = stride(from: 180, to: 250, by: 10)
             .reduce(into: [:]) { d, i in d[daysAgo(i)] = 70.0 }
         let calories: [Date: Double] = (180..<210).reduce(into: [:]) { d, i in d[daysAgo(i)] = 2350
@@ -339,13 +339,13 @@ struct ScenarioTests {
     func loggedSkippedLogged_oneWeekGap_stillValid() {
         var weights: [Date: Double] = [:]
         var calories: [Date: Double] = [:]
-        // Week 3: 1–7 days ago
+        // Week 3: 1-7 days ago
         for i in 1...7 {
             weights[daysAgo(i)] = 71.0
             calories[daysAgo(i)] = 2200
         }
-        // Week 2: 8–14 days ago — deliberately empty (gap)
-        // Week 1: 15–21 days ago
+        // Week 2: 8-14 days ago — deliberately empty (gap)
+        // Week 1: 15-21 days ago
         for i in 15...21 {
             weights[daysAgo(i)] = 71.5
             calories[daysAgo(i)] = 2200
@@ -385,13 +385,13 @@ struct ScenarioTests {
     func twoOnTwoOffTwoOn_6weekPattern_valid() {
         var weights: [Date: Double] = [:]
         var calories: [Date: Double] = [:]
-        // Active: 1–14 days ago (2nd on-period)
+        // Active: 1-14 days ago (2nd on-period)
         for i in 1...14 {
             weights[daysAgo(i)] = 70.0
             calories[daysAgo(i)] = 2150
         }
-        // Gap: 15–28 days ago (off-period)
-        // Active: 29–42 days ago (1st on-period)
+        // Gap: 15-28 days ago (off-period)
+        // Active: 29-42 days ago (1st on-period)
         for i in 29...42 {
             weights[daysAgo(i)] = 70.5
             calories[daysAgo(i)] = 2150
@@ -652,13 +652,13 @@ struct ScenarioTests {
         #expect(budget.daysLeft == 1)
     }
 
-    /// Sunday with ~400 kcal credit banked (Mon–Sat each 67 kcal under budget).
+    /// Sunday with ~400 kcal credit banked (Mon-Sat each 67 kcal under budget).
     /// daysLeft = 1 → full 400 collapses onto today (within ±500 cap).
     @Test("Sunday with ~400 kcal credit → full credit rolls into today's budget (within cap)")
     func sunday_400CreditBanked_fullCreditToday() {
         let maintenanceTarget = 2200.0
         let maintenance = stableMaintenanceService(target: maintenanceTarget)
-        // Mon–Sat: 67 kcal under each day → ~402 total credit
+        // Mon-Sat: 67 kcal under each day → ~402 total credit
         let weekData = weekBudgetIntakes(days: 6, daily: maintenanceTarget - 67)
 
         let budget = BudgetService(
@@ -678,7 +678,7 @@ struct ScenarioTests {
         #expect(budget.budget > budget.baseBudget)
     }
 
-    /// User went 1000 kcal over budget for 5 days (Mon–Fri, Wednesday as currentDate).
+    /// User went 1000 kcal over budget for 5 days (Mon-Fri, Wednesday as currentDate).
     /// Raw adjustment = −5000/5 = −1000 but the ±500 cap must activate.
     @Test("5 days at +1000 kcal over budget → debt exceeds cap, clamped to −500/day")
     func fiveDaysAt1000Over_debtCappedAt500() {

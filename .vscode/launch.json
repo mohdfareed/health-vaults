@@ -11,28 +11,10 @@
       "request": "launch",
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
-      "name": "Debug HealthVaults",
-      "program": "${workspaceFolder:health-vaults}/.build/debug/HealthVaults",
-      "preLaunchTask": "swift: Build Debug HealthVaults"
-    },
-    {
-      "type": "swift",
-      "request": "launch",
-      "args": [],
-      "cwd": "${workspaceFolder:health-vaults}",
-      "name": "Release HealthVaults",
-      "program": "${workspaceFolder:health-vaults}/.build/release/HealthVaults",
-      "preLaunchTask": "swift: Build Release HealthVaults"
-    },
-    {
-      "type": "swift",
-      "request": "launch",
-      "args": [],
-      "cwd": "${workspaceFolder:health-vaults}",
       "name": "Debug HealthVaultsWidgets",
-      "preLaunchTask": "swift: Build Debug HealthVaultsWidgets",
       "target": "HealthVaultsWidgets",
-      "configuration": "debug"
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug HealthVaultsWidgets"
     },
     {
       "type": "swift",
@@ -40,9 +22,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Release HealthVaultsWidgets",
-      "preLaunchTask": "swift: Build Release HealthVaultsWidgets",
       "target": "HealthVaultsWidgets",
-      "configuration": "release"
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release HealthVaultsWidgets"
     },
     {
       "type": "swift",
@@ -50,9 +32,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Debug HealthVaultsApp",
-      "preLaunchTask": "swift: Build Debug HealthVaultsApp",
       "target": "HealthVaultsApp",
-      "configuration": "debug"
+      "configuration": "debug",
+      "preLaunchTask": "swift: Build Debug HealthVaultsApp"
     },
     {
       "type": "swift",
@@ -60,9 +42,9 @@
       "args": [],
       "cwd": "${workspaceFolder:health-vaults}",
       "name": "Release HealthVaultsApp",
-      "preLaunchTask": "swift: Build Release HealthVaultsApp",
       "target": "HealthVaultsApp",
-      "configuration": "release"
+      "configuration": "release",
+      "preLaunchTask": "swift: Build Release HealthVaultsApp"
     }
   ]
 }

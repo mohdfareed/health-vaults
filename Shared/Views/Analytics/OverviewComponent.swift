@@ -75,7 +75,9 @@ public struct OverviewComponent: View {
                 hasLoaded = true
                 await refresh()
             }
-            .refreshOnHealthDataChange(for: [.dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat]) {
+            .refreshOnHealthDataChange(for: [
+                .dietaryCalories, .bodyMass, .bodyFatPercentage, .protein, .carbs, .fat,
+            ]) {
                 await refresh()
             }
             .onChange(of: adjustment) { _, newAdjustment in
@@ -129,7 +131,8 @@ public struct OverviewComponent: View {
                     budgetDataService.budgetService?.weight.weightSlope,
                     title: {
                         if let w = budgetDataService.budgetService?.weight,
-                           w.rawWeightSlope != w.weightSlope {
+                            w.rawWeightSlope != w.weightSlope
+                        {
                             return "Weight Trend (clamped)"
                         }
                         return "Weight Trend"
@@ -330,7 +333,9 @@ public struct OverviewComponent: View {
                         .foregroundStyle(.secondary)
                 }
                 Circle()
-                    .fill(budgetDataService.budgetService?.weight.isValid == true ? .green : .yellow)
+                    .fill(
+                        budgetDataService.budgetService?.weight.isValid == true ? .green : .yellow
+                    )
                     .frame(width: 8, height: 8)
             }
         } label: {
@@ -409,8 +414,11 @@ public struct OverviewComponent: View {
                     description: "Blends toward when data is sparse"
                 )
                 LabeledContent {
-                    Text(budgetDataService.fallbackSource.isEmpty ? "—" : budgetDataService.fallbackSource)
-                        .foregroundStyle(.tertiary)
+                    Text(
+                        budgetDataService.fallbackSource.isEmpty
+                            ? "—" : budgetDataService.fallbackSource
+                    )
+                    .foregroundStyle(.tertiary)
                 } label: {
                     OverviewDetailLabel(
                         title: "Fallback Source",
@@ -674,8 +682,10 @@ public struct OverviewComponent: View {
     ) -> some View {
         LabeledContent {
             if let range {
-                Text("\(range.from.formatted(date: .abbreviated, time: .omitted)) – \(range.to.formatted(date: .abbreviated, time: .omitted))")
-                    .foregroundStyle(.tertiary)
+                Text(
+                    "\(range.from.formatted(date: .abbreviated, time: .omitted)) - \(range.to.formatted(date: .abbreviated, time: .omitted))"
+                )
+                .foregroundStyle(.tertiary)
             } else {
                 Text("—")
                     .foregroundStyle(.tertiary)
