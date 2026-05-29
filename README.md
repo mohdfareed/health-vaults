@@ -6,9 +6,9 @@ A flexible calorie tracking app for iOS with rolling weekly budgets and adaptive
 
 - **Rolling Credit System**: Unused calories carry forward within a 7-day window
 - **Adaptive Maintenance**: TDEE calculated from weight trends via weighted linear regression
-- **HealthKit Integration**: Bidirectional sync for calories, weight, and macros; reads body fat % for personalized energy density
-- **Widgets**: WidgetKit-based budget and macro displays
-- **Macro Tracking**: Protein, carbohydrate, and fat monitoring
+- **HealthKit Integration**: Bidirectional sync for food and weight; reads body fat % for personalized energy density
+- **Widgets**: Home screen budget and macro displays
+- **Macro Tracking**: Protein, carbohydrate, fat, and alcohol budgeting
 
 ## Budget Model
 
@@ -28,7 +28,7 @@ Budget = Maintenance + Goal + Credit Adjustment
 Credit = (Base Budget × Days Logged) − Actual Intake
 ```
 
-Rolling 7-day window. Only logged days contribute—missing days are excluded, not assumed zero.
+Rolling 7-day window. Only logged days contribute; missing days are excluded, not assumed zero.
 
 ### Maintenance Estimation
 
@@ -52,7 +52,7 @@ Each component blends independently toward a neutral fallback based on its own d
 When recent (28-day) data is sparse, the fallback maintenance is estimated from personal historical data via progressive fetching:
 
 1. Query 6 months of HealthKit data
-2. If insufficient (< 28 weight days or < 56 calorie days), expand to 1 year
+2. If insufficient (28 > weight days or 56 > calorie days), expand to 1 year
 3. If still insufficient, expand to 2 years
 4. If no sufficient history exists, falls back to 2200 kcal/day baseline
 
@@ -91,10 +91,15 @@ Shared/
 Widgets/       # Widget extension
 ```
 
-## License
-
-[MIT License](./LICENSE)
-
 ## References
 
 - [Adaptive TDEE Spreadsheet](https://www.reddit.com/r/Fitness/comments/4mhvpn/adaptive_tdee_tracking_spreadsheet_v3_rescue/)
+- [OTexts: Exponential smoothing](https://otexts.com/fpp2/expsmooth.html)
+- [Hall, K. D. What is the required energy deficit per unit weight loss?](https://pmc.ncbi.nlm.nih.gov/articles/PMC2376744/)
+- [Hall, K. D. Body fat and fat-free mass inter-relationships: Forbes's theory revisited](https://pmc.ncbi.nlm.nih.gov/articles/PMC2376748/)
+- [FAO: Energy conversion factors](https://www.fao.org/3/y5022e/y5022e04.htm)
+- [NIAAA: What Is a Standard Drink?](https://www.niaaa.nih.gov/alcohols-effects-health/what-standard-drink)
+
+## License
+
+[MIT License](./LICENSE)

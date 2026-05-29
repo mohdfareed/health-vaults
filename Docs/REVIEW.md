@@ -79,6 +79,7 @@ Today's Budget = Maintenance + Goal + Credit Adjustment
 - `ModelLab/maintenance.ipynb` — Pipeline explorer: run scenarios through full maintenance calc, see every stage
 - `Scripts/lab.sh` — launches Jupyter via venv + pip
 - Open questions tracked in `Docs/PLAN_MODEL.md`
+- `Docs/MATH.md` — user-facing math source of truth with a references appendix for EWMA, Hall/Forbes, Atwater, and alcohol energy assumptions
 
 ## Key Decisions
 

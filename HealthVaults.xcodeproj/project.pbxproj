@@ -803,7 +803,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = HealthVaults.xcodeproj/App.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = "";
 				INFOPLIST_FILE = HealthVaults.xcodeproj/AppInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HealthVaults;
@@ -833,7 +833,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = HealthVaults.xcodeproj/App.entitlements;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				ENABLE_PREVIEWS = "";
 				INFOPLIST_FILE = HealthVaults.xcodeproj/AppInfo.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = HealthVaults;

@@ -39,7 +39,6 @@ $\hat{C} = S_n$. Gap $\Delta_k = \max(1, t_k - t_{k-1})$ in days.
 **Weight trend** — WLS regression over window $W_d = 28$ days:
 
 $$\omega_i = 0.9^{d_i}, \quad \beta = \frac{\sum \omega_i(t_i-\bar{t})(w_i-\bar{w})}{\sum \omega_i(t_i-\bar{t})^2}$$
-
 $$\dot{w} = \text{clamp}(7\beta,\ -1.0,\ +0.75) \quad \text{kg/week}$$
 
 **Energy density** — Forbes partition model:
@@ -117,3 +116,34 @@ $$B = \text{clamp}(B_0 + \delta,\ 1000,\ 6000)$$
 | Stages | 180…3650 | Historical windows (days) |
 | $\delta$ cap | ±500 | Credit spread (kcal/day) |
 | $B$ bounds | 1000-6000 | Budget clamp (kcal/day) |
+
+---
+
+## 4. References & Validation Notes
+
+The model combines published physiology/statistics with a few app-specific safety rules.
+The literature-backed pieces are the formulas that estimate intake, weight change, tissue
+energy density, and macronutrient energy. The window lengths, confidence gates, and hard
+bounds are engineering choices for stability and user safety; they are not presented here
+as scientific constants.
+
+| Model piece | Primary support |
+|---|---|
+| Gap-aware EWMA intake smoothing | Brown's exponential smoothing literature (Brown 1959/1963; Holt 1957). Exponential smoothing is a weighted average with exponentially decaying weights. |
+| Weight-loss energy accounting | Wishnofsky's 3,500 kcal/lb rule for the simple approximation, and Hall's critique showing why the constant is only an approximation. |
+| Forbes energy density $\rho$ | Forbes' lean mass / fat mass interrelationship model, revisited by Hall. |
+| Macronutrient calories | Atwater general factors as summarized in the Institute of Medicine DRI report and later reviews of metabolizable energy. |
+| Alcohol calories | Standard drink definitions from CDC/NIH sources, with 14 g pure alcohol per standard drink and $7$ kcal/g ethanol giving $98$ kcal per drink. |
+
+### Suggested reading
+
+- Brown, R. G. *Smoothing, Forecasting and Prediction of Discrete Time Series* (1963).
+- Holt, C. C. *Forecasting Trends and Seasonality by Exponentially Weighted Moving Averages* (1957).
+- Wishnofsky, M. *Caloric equivalents of gained or lost weight* (1958).
+- Hall, K. D. *What is the required energy deficit per unit weight loss?* *Int J Obes* (2008).
+- Forbes, G. B. *Lean body mass-body fat interrelationships in humans* *Nutr Rev* (1987).
+- Hall, K. D. *Body fat and fat-free mass inter-relationships: Forbes's theory revisited* *Br J Nutr* (2007).
+- Institute of Medicine. *Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol, Protein, and Amino Acids* (2005).
+- Sánchez-Peña, M. J. et al. *Calculating the metabolizable energy of macronutrients: a critical review of Atwater's results* *Nutr Rev* (2017).
+
+If you want, I can turn this into a more user-facing “How the math works” appendix with plain-language explanations and per-formula citations.
